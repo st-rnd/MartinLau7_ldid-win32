@@ -158,7 +158,7 @@ jobs:
       run: |
         make -j$(nproc) \
           CXXFLAGS="-Wextra ${CXXFLAGS}" \
-          LDFLAGS="-shared -static-libstdc++ ${LDFLAGS}" \
+          LDFLAGS="-static -static-libstdc++ ${LDFLAGS}" \
           EXT="${EXT}"
         ${TRIPLE}-strip ldid${EXT}
 

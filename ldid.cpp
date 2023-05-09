@@ -579,9 +579,11 @@ static std::string der(uint8_t tag, const char *value, size_t length) {
 }
 
 static std::string der(uint8_t tag, const char *value) {
-    return der(tag, value, strlen(value)); }
+    return der(tag, value, strlen(value));
+}
 static std::string der(uint8_t tag, const std::string &value) {
-    return der(tag, value.data(), value.size()); }
+    return der(tag, value.data(), value.size());
+}
 
 template <typename Type_>
 static void der_(std::stringbuf &data, const Type_ &values) {
