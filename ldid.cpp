@@ -3314,569 +3314,569 @@ void cleanupfunc(void) {
         remove(temp.c_str());
 }
 
-// #ifndef LDID_NOTOOLS
-// int main(int argc, char *argv[]) {
-//     std::atexit(cleanupfunc);
-//     OpenSSL_add_all_algorithms();
-// # if OPENSSL_VERSION_MAJOR >= 3
-//     OSSL_PROVIDER *legacy = OSSL_PROVIDER_load(NULL, "legacy");
-//     OSSL_PROVIDER *deflt = OSSL_PROVIDER_load(NULL, "default");
-// # endif
-
-//     union {
-//         uint16_t word;
-//         uint8_t byte[2];
-//     } endian = {1};
-
-//     little_ = endian.byte[0];
-
-//     bool flag_r(false);
-//     bool flag_e(false);
-//     bool flag_q(false);
-
-//     bool flag_h(false);
-
-
-//     bool flag_S(false);
-//     bool flag_s(false);
-
-//     bool flag_D(false);
-//     bool flag_d(false);
-
-//     bool flag_A(false);
-//     bool flag_a(false);
-
-//     bool flag_u(false);
-
-//     bool flag_M(false);
-
-//     uint32_t flags(0);
-//     uint8_t platform(0);
-
-//     uint32_t flag_CPUType(_not(uint32_t));
-//     uint32_t flag_CPUSubtype(_not(uint32_t));
-
-//     const char *flag_I(NULL);
-
-
-//     Map entitlements;
-//     Map requirements;
-//     Map key;
-//     ldid::Slots slots;
-
-//     std::vector<std::string> files;
-
-//     if (argc == 1) {
-//         usage(argv[0]);
-//         return 0;
-//     }
-
-//     for (int argi(1); argi != argc; ++argi)
-//         if (argv[argi][0] != '-')
-//             files.push_back(argv[argi]);
-//         else if (strcmp(argv[argi], "-arch") == 0) {
-//             bool foundarch = false;
-//             flag_A = true;
-//             argi++;
-//             if (argi == argc) {
-//                 fprintf(stderr, "ldid: -arch must be followed by an architecture string\n");
-//                 exit(1);
-//             }
-//             for (int i = 0; archs[i].name != NULL; i++) {
-//                 if (strcmp(archs[i].name, argv[argi]) == 0) {
-//                     flag_CPUType = archs[i].cputype;
-//                     flag_CPUSubtype = archs[i].cpusubtype;
-//                     foundarch = true;
-//                 }
-//                 if (foundarch)
-//                     break;
-//             }
-
-//             if (!foundarch) {
-//                 fprintf(stderr, "error: unknown architecture specification flag: -arch %s\n", argv[argi]);
-//                 exit(1);
-//             }
-//         } else switch (argv[argi][1]) {
-//             case 'r':
-//                 if (flag_s || flag_S) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_r = true;
-//             break;
-
-//             case 'e': flag_e = true; break;
-
-//             case 'E': {
-//                 const char *string = argv[argi] + 2;
-//                 const char *colon = strchr(string, ':');
-//                 if (colon == NULL) {
-//                     usage(argv[0]);
-//                     exit(1);
-//                 }
-//                 Map file(colon + 1, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//                 char *arge;
-//                 unsigned number(strtoul(string, &arge, 0));
-//                 if (arge != colon || (number == 0 && errno == EINVAL)) {
-//                     usage(argv[0]);
-//                     exit(1);
-//                 }
-//                 auto &slot(slots[number]);
-//                 for (Algorithm *algorithm : GetAlgorithms())
-//                     (*algorithm)(slot, file.data(), file.size());
-//             } break;
-
-//             case 'q': flag_q = true; break;
-
-//             case 'H': {
-//                 const char *hash = argv[argi] + 2;
-
-//                 if (!flag_H) {
-//                     flag_H = true;
-
-//                     do_sha1 = false;
-//                     do_sha256 = false;
-//                 }
-
-//                 if (strcmp(hash, "sha1") == 0)
-//                     do_sha1 = true;
-//                 else if (strcmp(hash, "sha256") == 0)
-//                     do_sha256 = true;
-//                 else {
-//                     fprintf(stderr, "ldid: only sha1 and sha256 are supported at this time\n");
-//                     exit(1);
-//                 }
-//             } break;
-
-//             case 'h': flag_h = true; break;
-
-//             case 'Q': {
-//                 const char *xml = argv[argi] + 2;
-//                 requirements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//             } break;
-
-//             case 'D': flag_D = true; break;
-//             case 'd': flag_d = true; break;
-
-//             case 'a': flag_a = true; break;
-
-//             case 'A':
-//                 if (flag_A) {
-//                     fprintf(stderr, "ldid: -A can only be specified once\n");
-//                     exit(1);
-//                 }
-//                 flag_A = true;
-//                 if (argv[argi][2] != '\0') {
-//                     const char *cpu = argv[argi] + 2;
-//                     const char *colon = strchr(cpu, ':');
-//                     if (colon == NULL) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                     char *arge;
-//                     flag_CPUType = strtoul(cpu, &arge, 0);
-//                     if (arge != colon || (flag_CPUType == 0 && errno == EINVAL)) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                     flag_CPUSubtype = strtoul(colon + 1, &arge, 0);
-//                     if (arge != argv[argi] + strlen(argv[argi]) || (flag_CPUSubtype == 0 && errno == EINVAL)) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                 }
-//             break;
-
-//             case 'C': {
-//                 const char *name = argv[argi] + 2;
-//                 std::istringstream signtypess(name);
-//                 std::string signtype;
-//                 while (std::getline(signtypess, signtype, ',')) {
-//                     if (signtype == "host")
-//                         flags |= kSecCodeSignatureHost;
-//                     else if (signtype == "adhoc")
-//                         flags |= kSecCodeSignatureAdhoc;
-//                     else if (signtype == "hard")
-//                         flags |= kSecCodeSignatureForceHard;
-//                     else if (signtype == "kill")
-//                         flags |= kSecCodeSignatureForceKill;
-//                     else if (signtype == "expires")
-//                         flags |= kSecCodeSignatureForceExpiration;
-//                     else if (signtype == "restrict")
-//                         flags |= kSecCodeSignatureRestrict;
-//                     else if (signtype == "enforcement")
-//                         flags |= kSecCodeSignatureEnforcement;
-//                     else if (signtype == "library-validation")
-//                         flags |= kSecCodeSignatureLibraryValidation;
-//                     else if (signtype == "runtime")
-//                         flags |= kSecCodeSignatureRuntime;
-//                     else if (signtype == "linker-signed")
-//                         flags |= kSecCodeSignatureLinkerSigned;
-//                     else {
-//                         fprintf(stderr, "ldid: -C: Unsupported option\n");
-//                         exit(1);
-//                     }
-//                 }
-//             } break;
-
-//             case 'P':
-//                 if (argv[argi][2] != '\0') {
-//                     char *platformchar = argv[argi] + 2;
-//                     char *arge;
-//                     platform = strtoul(platformchar, &arge, 0);
-//                 } else {
-//                     platform = 13;
-//                 }
-//             break;
-
-//             case 's':
-//                 if (flag_r || flag_S) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_s = true;
-//                 entitlements.clear();
-//                 flag_M = true;
-//             break;
-
-//             case 'S':
-//                 if (flag_r || flag_s) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_S = true;
-//                 if (argv[argi][2] != '\0') {
-//                     const char *xml = argv[argi] + 2;
-//                     entitlements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//                 }
-//             break;
-
-//             case 'w':
-//                 flag_w = true;
-//             break;
-
-//             case 'M':
-//                 flag_M = true;
-//             break;
-
-//             case 'U':
-//                 flag_U = true;
-//                 password = argv[argi] + 2;
-//             break;
-
-//             case 'K':
-//                 if (argv[argi][2] != '\0')
-//                     key.open(argv[argi] + 2, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//             break;
-
-//             case 'T': break;
-
-//             case 'u': {
-//                 flag_u = true;
-//             } break;
-
-//             case 'I': {
-//                 flag_I = argv[argi] + 2;
-//             } break;
-
-//             default:
-//                 usage(argv[0]);
-//                 return 1;
-//             break;
-//         }
-
-//     if (flag_I != NULL && !flag_S) {
-//         fprintf(stderr, "ldid: -I requires -S\n");
-//         exit(1);
-//     }
-
-//     if (files.empty())
-//         return 0;
-
-//     size_t filei(0), filee(0);
-//     _foreach (file, files) try {
-//         std::string path(file);
-
-//         struct stat info;
-//         if (stat(path.c_str(), &info) == -1) {
-//             fprintf(stderr, "ldid: %s: %s\n", path.c_str(), strerror(errno));
-//             exit(1);
-//         }
-
-//         if (S_ISDIR(info.st_mode)) {
-//             if (!flag_S && !flag_s) {
-//                 fprintf(stderr, "ldid: Only -S and -s can be used on directories\n");
-//                 exit(1);
-//             }
-//             ldid::DiskFolder folder(path + "/");
-//             path += "/" + Sign("", folder, key, requirements, ldid::fun([&](const std::string &, const std::string &) -> std::string { return entitlements; }), flag_M, platform, dummy_).path;
-//         } else if (flag_S || flag_r || flag_s) {
-//             Map input(path, O_RDONLY, PROT_READ, MAP_PRIVATE);
-
-//             std::filebuf output;
-//             Split split(path);
-//             auto temp(Temporary(output, split));
-
-//             if (flag_r)
-//                 ldid::Unsign(input.data(), input.size(), output, dummy_);
-//             else {
-//                 std::string identifier(flag_I ?: split.base.c_str());
-//                 ldid::Sign(input.data(), input.size(), output, identifier, entitlements, flag_M, requirements, key, slots, flags, platform, dummy_);
-//             }
-
-//             input.clear();
-//             output.close();
-
-//             Commit(path, temp);
-//         }
-
-//         Map mapping(path, flag_D ? true : false);
-//         FatHeader fat_header(mapping.data(), mapping.size());
-
-//         _foreach (mach_header, fat_header.GetMachHeaders()) {
-//             struct linkedit_data_command *signature(NULL);
-//             struct encryption_info_command *encryption(NULL);
-
-//             if (flag_A) {
-//                 if (mach_header.GetCPUType() != flag_CPUType)
-//                     continue;
-//                 if (mach_header.GetCPUSubtype() != flag_CPUSubtype)
-//                     continue;
-//             }
-
-//             if (flag_a)
-//                 printf("cpu=0x%x:0x%x\n", mach_header.GetCPUType(), mach_header.GetCPUSubtype());
-
-//             _foreach (load_command, mach_header.GetLoadCommands()) {
-//                 uint32_t cmd(mach_header.Swap(load_command->cmd));
-
-//                 if (cmd == LC_CODE_SIGNATURE)
-//                     signature = reinterpret_cast<struct linkedit_data_command *>(load_command);
-//                 else if (cmd == LC_ENCRYPTION_INFO || cmd == LC_ENCRYPTION_INFO_64)
-//                     encryption = reinterpret_cast<struct encryption_info_command *>(load_command);
-//                 else if (cmd == LC_LOAD_DYLIB) {
-//                     volatile struct dylib_command *dylib_command(reinterpret_cast<struct dylib_command *>(load_command));
-//                     const char *name(reinterpret_cast<const char *>(load_command) + mach_header.Swap(dylib_command->dylib.name));
-
-//                     if (strcmp(name, "/System/Library/Frameworks/UIKit.framework/UIKit") == 0) {
-//                         if (flag_u) {
-//                             Version version;
-//                             version.value = mach_header.Swap(dylib_command->dylib.current_version);
-//                             printf("uikit=%u.%u.%u\n", version.major, version.minor, version.patch);
-//                         }
-//                     }
-//                 }
-//             }
-
-//             if (flag_d && encryption != NULL) {
-//                 printf("cryptid=%d\n", mach_header.Swap(encryption->cryptid));
-//             }
-
-//             if (flag_D) {
-//                 if (encryption == NULL) {
-//                     fprintf(stderr, "ldid: -D requires an encrypted binary\n");
-//                     exit(1);
-//                 }
-//                 encryption->cryptid = mach_header.Swap(0);
-//             }
-
-//             if ((flag_e || flag_q || flag_h) && signature == NULL) {
-//                 fprintf(stderr, "ldid: -e, -q, and -h require a signed binary\n");
-//                 exit(1);
-//             }
-
-//             if (flag_e) {
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 for (size_t index(0); index != Swap(super->count); ++index)
-//                     if (Swap(super->index[index].type) == CSSLOT_ENTITLEMENTS) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         struct Blob *entitlements = reinterpret_cast<struct Blob *>(blob + begin);
-//                         fwrite(entitlements + 1, 1, Swap(entitlements->length) - sizeof(*entitlements), stdout);
-//                     }
-//             }
-
-//             if (flag_q) {
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 for (size_t index(0); index != Swap(super->count); ++index)
-//                     if (Swap(super->index[index].type) == CSSLOT_REQUIREMENTS) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         struct Blob *requirement = reinterpret_cast<struct Blob *>(blob + begin);
-//                         fwrite(requirement, 1, Swap(requirement->length), stdout);
-//                     }
-//             }
-
-//             if (flag_h) {
-//                 #if defined (__WIN32__) || defined (_MSC_VER) || defined (__MINGW32__)
-//                     #define realpath(N,R) _fullpath((R),(N),PATH_MAX)
-//                 #endif
-//                 char *buf = realpath(file.c_str(), NULL);
-//                 if (buf == NULL) {
-//                     fprintf(stderr, "ldid: realpath: %s\n", strerror(errno));
-//                     exit(1);
-//                 }
-//                 printf("Executable=%s\n", buf);
-//                 free(buf);
-
-//                 auto algorithms(GetAlgorithms());
-
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 struct Candidate {
-//                     CodeDirectory *directory_;
-//                     size_t size_;
-//                     Algorithm &algorithm_;
-//                     std::string hash_;
-//                     uint32_t offset;
-//                 };
-
-//                 std::map<uint8_t, Candidate> candidates;
-//                 uint32_t cmsBegin = 0, cmsEnd = 0;
-
-//                 for (size_t index(0); index != Swap(super->count); ++index) {
-//                     auto type(Swap(super->index[index].type));
-//                     if ((type == CSSLOT_CODEDIRECTORY || type >= CSSLOT_ALTERNATE) && type != CSSLOT_SIGNATURESLOT) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         uint32_t end = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
-//                         struct CodeDirectory *directory = reinterpret_cast<struct CodeDirectory *>(blob + begin + sizeof(Blob));
-//                         auto type(directory->hashType);
-//                         _assert(type > 0 && type <= algorithms.size());
-//                         auto &algorithm(*algorithms[type - 1]);
-//                         uint8_t hash[algorithm.size_];
-//                         algorithm(hash, blob + begin, end - begin);
-//                         candidates.insert({type, {directory, end - begin, algorithm, Hex(hash, algorithm.size_), begin}});
-//                     } else if (type == CSSLOT_SIGNATURESLOT) {
-//                         cmsBegin = Swap(super->index[index].offset);
-//                         cmsEnd = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
-//                     }
-//                 }
-
-//                 _assert(!candidates.empty());
-//                 auto best(candidates.end());
-//                 --best;
-
-//                 const auto directory(best->second.directory_);
-//                 const auto flags(Swap(directory->flags));
-
-//                 printf("Identifier=%s\n", blob + best->second.offset + Swap(directory->identOffset));
-
-//                 std::string names;
-//                 if (flags & kSecCodeSignatureHost)
-//                     names += ",host";
-//                 if (flags & kSecCodeSignatureAdhoc)
-//                     names += ",adhoc";
-//                 if (flags & kSecCodeSignatureForceHard)
-//                     names += ",hard";
-//                 if (flags & kSecCodeSignatureForceKill)
-//                     names += ",kill";
-//                 if (flags & kSecCodeSignatureForceExpiration)
-//                     names += ",expires";
-//                 if (flags & kSecCodeSignatureRestrict)
-//                     names += ",restrict";
-//                 if (flags & kSecCodeSignatureEnforcement)
-//                     names += ",enforcement";
-//                 if (flags & kSecCodeSignatureLibraryValidation)
-//                     names += ",library-validation";
-//                 if (flags & kSecCodeSignatureRuntime)
-//                     names += ",runtime";
-//                 if (flags & kSecCodeSignatureLinkerSigned)
-//                     names += ",linker-signed";
-
-//                 printf("CodeDirectory v=%x size=%zd flags=0x%x(%s) hashes=%d+%d location=embedded\n",
-//                     Swap(directory->version), best->second.size_, flags, names.empty() ? "none" : names.c_str() + 1, Swap(directory->nCodeSlots), Swap(directory->nSpecialSlots));
-//                 printf("Hash type=%s size=%d\n", best->second.algorithm_.name(), directory->hashSize);
-
-//                 std::string choices;
-//                 for (const auto &candidate : candidates) {
-//                     auto choice(candidate.second.algorithm_.name());
-//                     choices += ',';
-//                     choices += choice;
-//                     printf("CandidateCDHash %s=%.40s\n", choice, candidate.second.hash_.c_str());
-//                     printf("CandidateCDHashFull %s=%s\n", choice, candidate.second.hash_.c_str());
-//                 }
-//                 printf("Hash choices=%s\n", choices.c_str() + 1);
-
-//                 printf("CDHash=%.40s\n", best->second.hash_.c_str());
-
-//                 if (cmsBegin != 0 && cmsEnd != 0) {
-//                     // This loads the CMS blob and parses each X509 cert in the blob to extract the
-//                     // common name and print it as "Authority=%s"
-//                     Buffer bio(reinterpret_cast<const char *>(blob) + cmsBegin + sizeof(Blob), cmsEnd - cmsBegin);
-//                     PKCS7 *p7 = NULL;
-//                     if ((p7 = d2i_PKCS7_bio(bio, NULL)) == NULL) {
-//                         // In order to follow codesign, we just ignore errors
-//                         printf("Authority=(unavailable)\n");
-//                     } else {
-//                         STACK_OF(X509) *certs = NULL;
-//                         switch (OBJ_obj2nid(p7->type)) {
-//                             case NID_pkcs7_signed:
-//                                 if (p7->d.sign != NULL)
-//                                     certs = p7->d.sign->cert;
-//                                 break;
-//                             case NID_pkcs7_signedAndEnveloped:
-//                                 if (p7->d.signed_and_enveloped != NULL)
-//                                     certs = p7->d.signed_and_enveloped->cert;
-//                                 break;
-//                             default:
-//                                 break;
-//                         }
-//                         if (certs != NULL) {
-//                             X509 *x;
-//                             for (int i = 0; i < sk_X509_num(certs); i++) {
-//                                 x = sk_X509_value(certs, i);
-//                                 int lastpos = -1;
-//                                 X509_NAME *nm = X509_get_subject_name(x);
-//                                 X509_NAME_ENTRY *e;
-
-//                                 for (;;) {
-//                                     lastpos = X509_NAME_get_index_by_NID(nm, NID_commonName, lastpos);
-//                                     if (lastpos == -1)
-//                                         break;
-//                                     e = X509_NAME_get_entry(nm, lastpos);
-//                                     ASN1_STRING *s = X509_NAME_ENTRY_get_data(e);
-//                                     printf("Authority=%s\n", reinterpret_cast<const char *>(ASN1_STRING_get0_data(s)));
-//                                 }
-//                             }
-//                         } else {
-//                             printf("Authority=(unavailable)\n");
-//                         }
-//                     }
-//                     PKCS7_free(p7);
-//                 }
-
-//                 if (Swap(directory->teamIDOffset) > 0)
-//                     printf("TeamIdentifier=%s\n", blob + best->second.offset + Swap(directory->teamIDOffset));
-//                 else
-//                     printf("TeamIdentifier=not set\n");
-//             }
-//         }
-
-//         ++filei;
-//     } catch (const char *) {
-//         ++filee;
-//         ++filei;
-//     }
-
-// # if OPENSSL_VERSION_MAJOR >= 3
-//     OSSL_PROVIDER_unload(legacy);
-//     OSSL_PROVIDER_unload(deflt);
-// # endif
-
-//     return filee;
-// }
-// #endif // LDID_NOTOOLS
+#ifndef LDID_NOTOOLS
+int main(int argc, char *argv[]) {
+    std::atexit(cleanupfunc);
+    OpenSSL_add_all_algorithms();
+# if OPENSSL_VERSION_MAJOR >= 3
+    OSSL_PROVIDER *legacy = OSSL_PROVIDER_load(NULL, "legacy");
+    OSSL_PROVIDER *deflt = OSSL_PROVIDER_load(NULL, "default");
+# endif
+
+    union {
+        uint16_t word;
+        uint8_t byte[2];
+    } endian = {1};
+
+    little_ = endian.byte[0];
+
+    bool flag_r(false);
+    bool flag_e(false);
+    bool flag_q(false);
+
+    bool flag_h(false);
+
+
+    bool flag_S(false);
+    bool flag_s(false);
+
+    bool flag_D(false);
+    bool flag_d(false);
+
+    bool flag_A(false);
+    bool flag_a(false);
+
+    bool flag_u(false);
+
+    bool flag_M(false);
+
+    uint32_t flags(0);
+    uint8_t platform(0);
+
+    uint32_t flag_CPUType(_not(uint32_t));
+    uint32_t flag_CPUSubtype(_not(uint32_t));
+
+    const char *flag_I(NULL);
+
+
+    Map entitlements;
+    Map requirements;
+    Map key;
+    ldid::Slots slots;
+
+    std::vector<std::string> files;
+
+    if (argc == 1) {
+        usage(argv[0]);
+        return 0;
+    }
+
+    for (int argi(1); argi != argc; ++argi)
+        if (argv[argi][0] != '-')
+            files.push_back(argv[argi]);
+        else if (strcmp(argv[argi], "-arch") == 0) {
+            bool foundarch = false;
+            flag_A = true;
+            argi++;
+            if (argi == argc) {
+                fprintf(stderr, "ldid: -arch must be followed by an architecture string\n");
+                exit(1);
+            }
+            for (int i = 0; archs[i].name != NULL; i++) {
+                if (strcmp(archs[i].name, argv[argi]) == 0) {
+                    flag_CPUType = archs[i].cputype;
+                    flag_CPUSubtype = archs[i].cpusubtype;
+                    foundarch = true;
+                }
+                if (foundarch)
+                    break;
+            }
+
+            if (!foundarch) {
+                fprintf(stderr, "error: unknown architecture specification flag: -arch %s\n", argv[argi]);
+                exit(1);
+            }
+        } else switch (argv[argi][1]) {
+            case 'r':
+                if (flag_s || flag_S) {
+                    fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
+                    exit(1);
+                }
+                flag_r = true;
+            break;
+
+            case 'e': flag_e = true; break;
+
+            case 'E': {
+                const char *string = argv[argi] + 2;
+                const char *colon = strchr(string, ':');
+                if (colon == NULL) {
+                    usage(argv[0]);
+                    exit(1);
+                }
+                Map file(colon + 1, O_RDONLY, PROT_READ, MAP_PRIVATE);
+                char *arge;
+                unsigned number(strtoul(string, &arge, 0));
+                if (arge != colon || (number == 0 && errno == EINVAL)) {
+                    usage(argv[0]);
+                    exit(1);
+                }
+                auto &slot(slots[number]);
+                for (Algorithm *algorithm : GetAlgorithms())
+                    (*algorithm)(slot, file.data(), file.size());
+            } break;
+
+            case 'q': flag_q = true; break;
+
+            case 'H': {
+                const char *hash = argv[argi] + 2;
+
+                if (!flag_H) {
+                    flag_H = true;
+
+                    do_sha1 = false;
+                    do_sha256 = false;
+                }
+
+                if (strcmp(hash, "sha1") == 0)
+                    do_sha1 = true;
+                else if (strcmp(hash, "sha256") == 0)
+                    do_sha256 = true;
+                else {
+                    fprintf(stderr, "ldid: only sha1 and sha256 are supported at this time\n");
+                    exit(1);
+                }
+            } break;
+
+            case 'h': flag_h = true; break;
+
+            case 'Q': {
+                const char *xml = argv[argi] + 2;
+                requirements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
+            } break;
+
+            case 'D': flag_D = true; break;
+            case 'd': flag_d = true; break;
+
+            case 'a': flag_a = true; break;
+
+            case 'A':
+                if (flag_A) {
+                    fprintf(stderr, "ldid: -A can only be specified once\n");
+                    exit(1);
+                }
+                flag_A = true;
+                if (argv[argi][2] != '\0') {
+                    const char *cpu = argv[argi] + 2;
+                    const char *colon = strchr(cpu, ':');
+                    if (colon == NULL) {
+                        usage(argv[0]);
+                        exit(1);
+                    }
+                    char *arge;
+                    flag_CPUType = strtoul(cpu, &arge, 0);
+                    if (arge != colon || (flag_CPUType == 0 && errno == EINVAL)) {
+                        usage(argv[0]);
+                        exit(1);
+                    }
+                    flag_CPUSubtype = strtoul(colon + 1, &arge, 0);
+                    if (arge != argv[argi] + strlen(argv[argi]) || (flag_CPUSubtype == 0 && errno == EINVAL)) {
+                        usage(argv[0]);
+                        exit(1);
+                    }
+                }
+            break;
+
+            case 'C': {
+                const char *name = argv[argi] + 2;
+                std::istringstream signtypess(name);
+                std::string signtype;
+                while (std::getline(signtypess, signtype, ',')) {
+                    if (signtype == "host")
+                        flags |= kSecCodeSignatureHost;
+                    else if (signtype == "adhoc")
+                        flags |= kSecCodeSignatureAdhoc;
+                    else if (signtype == "hard")
+                        flags |= kSecCodeSignatureForceHard;
+                    else if (signtype == "kill")
+                        flags |= kSecCodeSignatureForceKill;
+                    else if (signtype == "expires")
+                        flags |= kSecCodeSignatureForceExpiration;
+                    else if (signtype == "restrict")
+                        flags |= kSecCodeSignatureRestrict;
+                    else if (signtype == "enforcement")
+                        flags |= kSecCodeSignatureEnforcement;
+                    else if (signtype == "library-validation")
+                        flags |= kSecCodeSignatureLibraryValidation;
+                    else if (signtype == "runtime")
+                        flags |= kSecCodeSignatureRuntime;
+                    else if (signtype == "linker-signed")
+                        flags |= kSecCodeSignatureLinkerSigned;
+                    else {
+                        fprintf(stderr, "ldid: -C: Unsupported option\n");
+                        exit(1);
+                    }
+                }
+            } break;
+
+            case 'P':
+                if (argv[argi][2] != '\0') {
+                    char *platformchar = argv[argi] + 2;
+                    char *arge;
+                    platform = strtoul(platformchar, &arge, 0);
+                } else {
+                    platform = 13;
+                }
+            break;
+
+            case 's':
+                if (flag_r || flag_S) {
+                    fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
+                    exit(1);
+                }
+                flag_s = true;
+                entitlements.clear();
+                flag_M = true;
+            break;
+
+            case 'S':
+                if (flag_r || flag_s) {
+                    fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
+                    exit(1);
+                }
+                flag_S = true;
+                if (argv[argi][2] != '\0') {
+                    const char *xml = argv[argi] + 2;
+                    entitlements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
+                }
+            break;
+
+            case 'w':
+                flag_w = true;
+            break;
+
+            case 'M':
+                flag_M = true;
+            break;
+
+            case 'U':
+                flag_U = true;
+                password = argv[argi] + 2;
+            break;
+
+            case 'K':
+                if (argv[argi][2] != '\0')
+                    key.open(argv[argi] + 2, O_RDONLY, PROT_READ, MAP_PRIVATE);
+            break;
+
+            case 'T': break;
+
+            case 'u': {
+                flag_u = true;
+            } break;
+
+            case 'I': {
+                flag_I = argv[argi] + 2;
+            } break;
+
+            default:
+                usage(argv[0]);
+                return 1;
+            break;
+        }
+
+    if (flag_I != NULL && !flag_S) {
+        fprintf(stderr, "ldid: -I requires -S\n");
+        exit(1);
+    }
+
+    if (files.empty())
+        return 0;
+
+    size_t filei(0), filee(0);
+    _foreach (file, files) try {
+        std::string path(file);
+
+        struct stat info;
+        if (stat(path.c_str(), &info) == -1) {
+            fprintf(stderr, "ldid: %s: %s\n", path.c_str(), strerror(errno));
+            exit(1);
+        }
+
+        if (S_ISDIR(info.st_mode)) {
+            if (!flag_S && !flag_s) {
+                fprintf(stderr, "ldid: Only -S and -s can be used on directories\n");
+                exit(1);
+            }
+            ldid::DiskFolder folder(path + "/");
+            path += "/" + Sign("", folder, key, requirements, ldid::fun([&](const std::string &, const std::string &) -> std::string { return entitlements; }), flag_M, platform, dummy_).path;
+        } else if (flag_S || flag_r || flag_s) {
+            Map input(path, O_RDONLY, PROT_READ, MAP_PRIVATE);
+
+            std::filebuf output;
+            Split split(path);
+            auto temp(Temporary(output, split));
+
+            if (flag_r)
+                ldid::Unsign(input.data(), input.size(), output, dummy_);
+            else {
+                std::string identifier(flag_I ?: split.base.c_str());
+                ldid::Sign(input.data(), input.size(), output, identifier, entitlements, flag_M, requirements, key, slots, flags, platform, dummy_);
+            }
+
+            input.clear();
+            output.close();
+
+            Commit(path, temp);
+        }
+
+        Map mapping(path, flag_D ? true : false);
+        FatHeader fat_header(mapping.data(), mapping.size());
+
+        _foreach (mach_header, fat_header.GetMachHeaders()) {
+            struct linkedit_data_command *signature(NULL);
+            struct encryption_info_command *encryption(NULL);
+
+            if (flag_A) {
+                if (mach_header.GetCPUType() != flag_CPUType)
+                    continue;
+                if (mach_header.GetCPUSubtype() != flag_CPUSubtype)
+                    continue;
+            }
+
+            if (flag_a)
+                printf("cpu=0x%x:0x%x\n", mach_header.GetCPUType(), mach_header.GetCPUSubtype());
+
+            _foreach (load_command, mach_header.GetLoadCommands()) {
+                uint32_t cmd(mach_header.Swap(load_command->cmd));
+
+                if (cmd == LC_CODE_SIGNATURE)
+                    signature = reinterpret_cast<struct linkedit_data_command *>(load_command);
+                else if (cmd == LC_ENCRYPTION_INFO || cmd == LC_ENCRYPTION_INFO_64)
+                    encryption = reinterpret_cast<struct encryption_info_command *>(load_command);
+                else if (cmd == LC_LOAD_DYLIB) {
+                    volatile struct dylib_command *dylib_command(reinterpret_cast<struct dylib_command *>(load_command));
+                    const char *name(reinterpret_cast<const char *>(load_command) + mach_header.Swap(dylib_command->dylib.name));
+
+                    if (strcmp(name, "/System/Library/Frameworks/UIKit.framework/UIKit") == 0) {
+                        if (flag_u) {
+                            Version version;
+                            version.value = mach_header.Swap(dylib_command->dylib.current_version);
+                            printf("uikit=%u.%u.%u\n", version.major, version.minor, version.patch);
+                        }
+                    }
+                }
+            }
+
+            if (flag_d && encryption != NULL) {
+                printf("cryptid=%d\n", mach_header.Swap(encryption->cryptid));
+            }
+
+            if (flag_D) {
+                if (encryption == NULL) {
+                    fprintf(stderr, "ldid: -D requires an encrypted binary\n");
+                    exit(1);
+                }
+                encryption->cryptid = mach_header.Swap(0);
+            }
+
+            if ((flag_e || flag_q || flag_h) && signature == NULL) {
+                fprintf(stderr, "ldid: -e, -q, and -h require a signed binary\n");
+                exit(1);
+            }
+
+            if (flag_e) {
+                uint32_t data = mach_header.Swap(signature->dataoff);
+
+                uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
+                uint8_t *blob = top + data;
+                struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
+
+                for (size_t index(0); index != Swap(super->count); ++index)
+                    if (Swap(super->index[index].type) == CSSLOT_ENTITLEMENTS) {
+                        uint32_t begin = Swap(super->index[index].offset);
+                        struct Blob *entitlements = reinterpret_cast<struct Blob *>(blob + begin);
+                        fwrite(entitlements + 1, 1, Swap(entitlements->length) - sizeof(*entitlements), stdout);
+                    }
+            }
+
+            if (flag_q) {
+                uint32_t data = mach_header.Swap(signature->dataoff);
+
+                uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
+                uint8_t *blob = top + data;
+                struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
+
+                for (size_t index(0); index != Swap(super->count); ++index)
+                    if (Swap(super->index[index].type) == CSSLOT_REQUIREMENTS) {
+                        uint32_t begin = Swap(super->index[index].offset);
+                        struct Blob *requirement = reinterpret_cast<struct Blob *>(blob + begin);
+                        fwrite(requirement, 1, Swap(requirement->length), stdout);
+                    }
+            }
+
+            if (flag_h) {
+                #if defined (__WIN32__) || defined (_MSC_VER) || defined (__MINGW32__)
+                    #define realpath(N,R) _fullpath((R),(N),PATH_MAX)
+                #endif
+                char *buf = realpath(file.c_str(), NULL);
+                if (buf == NULL) {
+                    fprintf(stderr, "ldid: realpath: %s\n", strerror(errno));
+                    exit(1);
+                }
+                printf("Executable=%s\n", buf);
+                free(buf);
+
+                auto algorithms(GetAlgorithms());
+
+                uint32_t data = mach_header.Swap(signature->dataoff);
+
+                uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
+                uint8_t *blob = top + data;
+                struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
+
+                struct Candidate {
+                    CodeDirectory *directory_;
+                    size_t size_;
+                    Algorithm &algorithm_;
+                    std::string hash_;
+                    uint32_t offset;
+                };
+
+                std::map<uint8_t, Candidate> candidates;
+                uint32_t cmsBegin = 0, cmsEnd = 0;
+
+                for (size_t index(0); index != Swap(super->count); ++index) {
+                    auto type(Swap(super->index[index].type));
+                    if ((type == CSSLOT_CODEDIRECTORY || type >= CSSLOT_ALTERNATE) && type != CSSLOT_SIGNATURESLOT) {
+                        uint32_t begin = Swap(super->index[index].offset);
+                        uint32_t end = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
+                        struct CodeDirectory *directory = reinterpret_cast<struct CodeDirectory *>(blob + begin + sizeof(Blob));
+                        auto type(directory->hashType);
+                        _assert(type > 0 && type <= algorithms.size());
+                        auto &algorithm(*algorithms[type - 1]);
+                        uint8_t hash[algorithm.size_];
+                        algorithm(hash, blob + begin, end - begin);
+                        candidates.insert({type, {directory, end - begin, algorithm, Hex(hash, algorithm.size_), begin}});
+                    } else if (type == CSSLOT_SIGNATURESLOT) {
+                        cmsBegin = Swap(super->index[index].offset);
+                        cmsEnd = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
+                    }
+                }
+
+                _assert(!candidates.empty());
+                auto best(candidates.end());
+                --best;
+
+                const auto directory(best->second.directory_);
+                const auto flags(Swap(directory->flags));
+
+                printf("Identifier=%s\n", blob + best->second.offset + Swap(directory->identOffset));
+
+                std::string names;
+                if (flags & kSecCodeSignatureHost)
+                    names += ",host";
+                if (flags & kSecCodeSignatureAdhoc)
+                    names += ",adhoc";
+                if (flags & kSecCodeSignatureForceHard)
+                    names += ",hard";
+                if (flags & kSecCodeSignatureForceKill)
+                    names += ",kill";
+                if (flags & kSecCodeSignatureForceExpiration)
+                    names += ",expires";
+                if (flags & kSecCodeSignatureRestrict)
+                    names += ",restrict";
+                if (flags & kSecCodeSignatureEnforcement)
+                    names += ",enforcement";
+                if (flags & kSecCodeSignatureLibraryValidation)
+                    names += ",library-validation";
+                if (flags & kSecCodeSignatureRuntime)
+                    names += ",runtime";
+                if (flags & kSecCodeSignatureLinkerSigned)
+                    names += ",linker-signed";
+
+                printf("CodeDirectory v=%x size=%zd flags=0x%x(%s) hashes=%d+%d location=embedded\n",
+                    Swap(directory->version), best->second.size_, flags, names.empty() ? "none" : names.c_str() + 1, Swap(directory->nCodeSlots), Swap(directory->nSpecialSlots));
+                printf("Hash type=%s size=%d\n", best->second.algorithm_.name(), directory->hashSize);
+
+                std::string choices;
+                for (const auto &candidate : candidates) {
+                    auto choice(candidate.second.algorithm_.name());
+                    choices += ',';
+                    choices += choice;
+                    printf("CandidateCDHash %s=%.40s\n", choice, candidate.second.hash_.c_str());
+                    printf("CandidateCDHashFull %s=%s\n", choice, candidate.second.hash_.c_str());
+                }
+                printf("Hash choices=%s\n", choices.c_str() + 1);
+
+                printf("CDHash=%.40s\n", best->second.hash_.c_str());
+
+                if (cmsBegin != 0 && cmsEnd != 0) {
+                    // This loads the CMS blob and parses each X509 cert in the blob to extract the
+                    // common name and print it as "Authority=%s"
+                    Buffer bio(reinterpret_cast<const char *>(blob) + cmsBegin + sizeof(Blob), cmsEnd - cmsBegin);
+                    PKCS7 *p7 = NULL;
+                    if ((p7 = d2i_PKCS7_bio(bio, NULL)) == NULL) {
+                        // In order to follow codesign, we just ignore errors
+                        printf("Authority=(unavailable)\n");
+                    } else {
+                        STACK_OF(X509) *certs = NULL;
+                        switch (OBJ_obj2nid(p7->type)) {
+                            case NID_pkcs7_signed:
+                                if (p7->d.sign != NULL)
+                                    certs = p7->d.sign->cert;
+                                break;
+                            case NID_pkcs7_signedAndEnveloped:
+                                if (p7->d.signed_and_enveloped != NULL)
+                                    certs = p7->d.signed_and_enveloped->cert;
+                                break;
+                            default:
+                                break;
+                        }
+                        if (certs != NULL) {
+                            X509 *x;
+                            for (int i = 0; i < sk_X509_num(certs); i++) {
+                                x = sk_X509_value(certs, i);
+                                int lastpos = -1;
+                                X509_NAME *nm = X509_get_subject_name(x);
+                                X509_NAME_ENTRY *e;
+
+                                for (;;) {
+                                    lastpos = X509_NAME_get_index_by_NID(nm, NID_commonName, lastpos);
+                                    if (lastpos == -1)
+                                        break;
+                                    e = X509_NAME_get_entry(nm, lastpos);
+                                    ASN1_STRING *s = X509_NAME_ENTRY_get_data(e);
+                                    printf("Authority=%s\n", reinterpret_cast<const char *>(ASN1_STRING_get0_data(s)));
+                                }
+                            }
+                        } else {
+                            printf("Authority=(unavailable)\n");
+                        }
+                    }
+                    PKCS7_free(p7);
+                }
+
+                if (Swap(directory->teamIDOffset) > 0)
+                    printf("TeamIdentifier=%s\n", blob + best->second.offset + Swap(directory->teamIDOffset));
+                else
+                    printf("TeamIdentifier=not set\n");
+            }
+        }
+
+        ++filei;
+    } catch (const char *) {
+        ++filee;
+        ++filei;
+    }
+
+# if OPENSSL_VERSION_MAJOR >= 3
+    OSSL_PROVIDER_unload(legacy);
+    OSSL_PROVIDER_unload(deflt);
+# endif
+
+    return filee;
+}
+#endif // LDID_NOTOOLS
 
 // vim: tabstop=4 softtabstop=4 shiftwidth=4 expandtab

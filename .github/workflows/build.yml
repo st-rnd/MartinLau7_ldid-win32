@@ -84,7 +84,7 @@ jobs:
         echo "NM=${TRIPLE}-gcc-nm" >> $GITHUB_ENV
         echo "RANLIB=${TRIPLE}-gcc-ranlib" >> $GITHUB_ENV
         if [ "${OS}" = "w64" ]; then
-        echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -fdata-sections" >> $GITHUB_ENV
+        echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -fdata-sections -D LDID_NOTOOLS" >> $GITHUB_ENV
         echo "CXXFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -fdata-sections" >> $GITHUB_ENV
         echo "LDFLAGS=-Os -fPIC -fno-pie -no-pie -static -Wl,--gc-sections -Wl,-strip-all -ffunction-sections -fdata-sections" >> $GITHUB_ENV
         else
