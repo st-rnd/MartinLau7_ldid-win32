@@ -59,7 +59,7 @@ jobs:
         echo "ARCH=$(echo ${{ matrix.triple }} | cut -d- -f 1)" >> $GITHUB_ENV
         echo "OS=$(echo ${{ matrix.triple }} | cut -d- -f 2)" >> $GITHUB_ENV
         if [ "$(echo ${{ matrix.triple }} | cut -d- -f 2)" = "w64" ]; then
-          echo "EXT=.exe" >> $GITHUB_ENV
+          echo "EXT=.dll" >> $GITHUB_ENV
         else
           echo "EXT=" >> $GITHUB_ENV
         fi
@@ -85,7 +85,7 @@ jobs:
         echo "RANLIB=${TRIPLE}-gcc-ranlib" >> $GITHUB_ENV
         if [ "${OS}" = "w64" ]; then
         echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -fdata-sections " >> $GITHUB_ENV
-        echo "CXXFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -fdata-sections" >> $GITHUB_ENV
+        echo "CXXFLAGS=-Os -fPIC -fno-pie -no-pie -ffunction-sections -fdata-sections" >> $GITHUB_ENV
         echo "LDFLAGS=-Os -fPIC -fno-pie -no-pie -static -Wl,--gc-sections -Wl,-strip-all -ffunction-sections -fdata-sections" >> $GITHUB_ENV
         else
         echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -flto -fdata-sections" >> $GITHUB_ENV
@@ -158,7 +158,7 @@ jobs:
       run: |
         make -j$(nproc) \
           CXXFLAGS="-Wextra ${CXXFLAGS}" \
-          LDFLAGS="-static -static-libstdc++ ${LDFLAGS}" \
+          LDFLAGS="-static-libstdc++ ${LDFLAGS}" \
           EXT="${EXT}"
         ${TRIPLE}-strip ldid${EXT}
 
