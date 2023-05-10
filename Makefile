@@ -10,7 +10,7 @@ INSTALL  ?= install
 LN       ?= ln
 
 CXXFLAGS ?= -O2 -pipe
-LDFLAGS  ?= -D LDID_NOTOOLS
+LDFLAGS  ?=
 
 PREFIX   ?= /usr/local
 
@@ -38,7 +38,7 @@ EXT ?=
 all: ldid$(EXT)
 
 %.cpp.o: %.cpp
-	$(CXX) -c -std=c++11 $(CXXFLAGS) $(LIBCRYPTO_INCLUDES) $(LIBPLIST_INCLUDES) $(CPPFLAGS) -I. -DLDID_VERSION=\"$(VERSION)\" $< -o $@
+	$(CXX) -c -shared -std=c++11 $(CXXFLAGS) $(LIBCRYPTO_INCLUDES) $(LIBPLIST_INCLUDES) $(CPPFLAGS) -I. -DLDID_VERSION=\"$(VERSION)\" $< -o $@
 
 ldid$(EXT): $(SRC:%=%.o)
 	$(CXX) -shared -o $@ $^ $(LDFLAGS) $(LIBCRYPTO_LIBS) $(LIBPLIST_LIBS) $(LIBS)
