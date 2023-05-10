@@ -10,7 +10,7 @@ INSTALL  ?= install
 LN       ?= ln
 
 CXXFLAGS ?= -O2 -pipe
-LDFLAGS  ?=
+LDFLAGS  ?= -D LDID_NOTOOLS
 
 PREFIX   ?= /usr/local
 
