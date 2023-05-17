@@ -40,7 +40,7 @@ class FunctorImpl<Type_ (Value_::*)(Args_...) const> :
     {
     }
 
-    virtual Type_ operator ()(Args_... args) const {
+    virtual Type_ operator()(Args_... args) const {
         return (*value_)(args...);
     }
 };
@@ -49,11 +49,6 @@ template <typename Function_>
 FunctorImpl<decltype(&Function_::operator())> fun(const Function_ &value) {
     return value;
 }
-
-struct Progress {
-    virtual void operator()(const std::string &value) const = 0;
-    virtual void operator()(double value) const = 0;
-};
 
 class Folder {
   public:
@@ -73,8 +68,8 @@ class DiskFolder :
   protected:
     std::string Path(const std::string &path) const;
 
-  private:
-    void Find(const std::string &root, const std::string &base, const Functor<void (const std::string &)> &code, const Functor<void (const std::string &, const Functor<std::string ()> &)> &link) const;
+private:
+    void Find(const std::string &root, const std::string &base, const Functor<void(const std::string &)> &code, const Functor<void(const std::string &, const Functor<std::string()> &)> &link) const;
 
   public:
     DiskFolder(const std::string &path);
@@ -104,9 +99,7 @@ class SubFolder :
     virtual void Find(const std::string &path, const Functor<void (const std::string &)> &code, const Functor<void (const std::string &, const Functor<std::string ()> &)> &link) const;
 };
 
-class UnionFolder :
-    public Folder
-{
+class UnionFolder : public Folder {
   private:
     struct Reset {
         const void *flag_;
@@ -157,11 +150,11 @@ struct Bundle {
     Hash hash;
 };
 
-Bundle Sign(const std::string &root, Folder &folder, const std::string &key, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Progress &progress);
+Bundle Sign(const std::string &root, Folder &folder, const std::string &key, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Functor<void(const std::string &)> &progress, const Functor<void(double)> &percent);
 
 typedef std::map<uint32_t, Hash> Slots;
 
-Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, uint32_t flags, uint8_t platform, const Progress &progress);
+Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, uint32_t flags, uint8_t platform, const Functor<void(double)> &percent);
 
 }
 

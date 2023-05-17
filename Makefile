@@ -17,7 +17,7 @@ PREFIX   ?= /usr/local
 BINDIR   ?= $(PREFIX)/bin
 MANDIR   ?= $(PREFIX)/share/man
 
-SRC      := ldid.cpp
+SRC      := *.cpp
 LIBS     ?=
 
 LIBPLIST_INCLUDES  ?= $(shell pkg-config --cflags libplist-2.0)

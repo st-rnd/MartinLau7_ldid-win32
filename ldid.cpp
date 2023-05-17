@@ -101,8 +101,7 @@
     for (auto success : (long[]) {EINTR, __VA_ARGS__}) \
         if (error == success) \
             return (decltype(expr)) -success; \
-    fprintf(stderr, "ldid: %s: %s\n", __func__, strerror(error)); \
-    exit(1); \
+    _assert_(false, "ldid: %s: %s\n", __func__, strerror(error)); \
 } }()
 
 #define _trace() \
@@ -125,11 +124,11 @@ struct Iterator_ {
     typedef typename Type_::const_iterator Result;
 };
 
-#define _foreach(item, list) \
-    for (bool _stop(true); _stop; ) \
-        for (const __typeof__(list) &_list = (list); _stop; _stop = false) \
+#define _foreach(item, list)                                                                               \
+    for (bool _stop(true); _stop;)                                                                         \
+        for (const __typeof__(list) &_list = (list); _stop; _stop = false)                                 \
             for (Iterator_<__typeof__(list)>::Result _item = _list.begin(); _item != _list.end(); ++_item) \
-                for (bool _suck(true); _suck; _suck = false) \
+                for (bool _suck(true); _suck; _suck = false)                                               \
                     for (const __typeof__(*_item) &item = *_item; _suck; _suck = false)
 
 class _Scope {
@@ -139,10 +138,10 @@ template <typename Function_>
 class Scope :
     public _Scope
 {
-  private:
+private:
     Function_ function_;
 
-  public:
+public:
     Scope(const Function_ &function) :
         function_(function)
     {
@@ -159,7 +158,7 @@ Scope<Function_> _scope(const Function_ &function) {
 }
 
 #define _scope__(counter, function) \
-    __attribute__((__unused__)) \
+    __attribute__((__unused__))     \
     const _Scope &_scope ## counter(_scope([&]function))
 #define _scope_(counter, function) \
     _scope__(counter, function)
@@ -352,17 +351,17 @@ struct dylib_module {
 } _packed;
 
 struct dylib_reference {
-    uint32_t isym:24;
-    uint32_t flags:8;
+    uint32_t isym : 24;
+    uint32_t flags : 8;
 } _packed;
 
 struct relocation_info {
     int32_t r_address;
-    uint32_t r_symbolnum:24;
-    uint32_t r_pcrel:1;
-    uint32_t r_length:2;
-    uint32_t r_extern:1;
-    uint32_t r_type:4;
+    uint32_t r_symbolnum : 24;
+    uint32_t r_pcrel : 1;
+    uint32_t r_length : 2;
+    uint32_t r_extern : 1;
+    uint32_t r_type : 4;
 } _packed;
 
 struct nlist {
@@ -465,32 +464,7 @@ struct encryption_info_command {
 #define BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED      0xb0
 #define BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB 0xc0
 
-struct : ldid::Progress {
-    virtual void operator()(const std::string &value) const {
-    }
-
-    virtual void operator()(double value) const {
-    }
-} dummy_;
-
-struct Progression : ldid::Progress {
-    const ldid::Progress &progress_;
-    std::string name_;
-
-    Progression(const ldid::Progress &progress, const std::string &name) :
-        progress_(progress),
-        name_(name)
-    {
-    }
-
-    virtual void operator()(const std::string &value) const {
-        return progress_(name_ + " (" + value + ")");
-    }
-
-    virtual void operator()(double value) const {
-        return progress_(value);
-    }
-};
+static auto dummy([](double) {});
 
 static std::streamsize read(std::streambuf &stream, void *data, size_t size) {
     auto writ(stream.sgetn(static_cast<char *>(data), size));
@@ -510,13 +484,13 @@ static inline void put(std::streambuf &stream, const void *data, size_t size) {
     _assert(stream.sputn(static_cast<const char *>(data), size) == size);
 }
 
-static inline void put(std::streambuf &stream, const void *data, size_t size, const ldid::Progress &progress) {
-    progress(0);
+static inline void put(std::streambuf &stream, const void *data, size_t size, const ldid::Functor<void(double)> &percent) {
+    percent(0);
     for (size_t total(0); total != size;) {
         auto writ(std::min(size - total, size_t(4096 * 4)));
         _assert(stream.sputn(static_cast<const char *>(data) + total, writ) == writ);
         total += writ;
-        progress(double(total) / size);
+        percent(double(total) / size);
     }
 }
 
@@ -529,7 +503,8 @@ static size_t most(std::streambuf &stream, void *data, size_t size) {
     while (size > 0)
         if (auto writ = read(stream, data, size))
             size -= writ;
-        else break;
+        else
+            break;
     return total - size;
 }
 
@@ -645,13 +620,11 @@ static std::string der(plist_t data) {
         } break;
 
         case PLIST_REAL: {
-            fprintf(stderr, "ldid: Invalid plist entry type\n");
-            exit(1);
+            _assert(false);
         } break;
 
         case PLIST_DATE: {
-            fprintf(stderr, "ldid: Invalid plist entry type\n");
-            exit(1);
+            _assert(false);
         } break;
 
         case PLIST_DATA: {
@@ -697,30 +670,25 @@ static std::string der(plist_t data) {
         } break;
 
         default: {
-            fprintf(stderr, "ldid: Unsupported plist type %d", type);
-            exit(1);
+            _assert_(false, "unsupported plist type %d", type);
         } break;
     }
 }
 
 static inline uint16_t Swap_(uint16_t value) {
-    return
-        ((value >>  8) & 0x00ff) |
-        ((value <<  8) & 0xff00);
+    return ((value >> 8) & 0x00ff) | ((value << 8) & 0xff00);
 }
 
 static inline uint32_t Swap_(uint32_t value) {
-    value = ((value >>  8) & 0x00ff00ff) |
-            ((value <<  8) & 0xff00ff00);
-    value = ((value >> 16) & 0x0000ffff) |
-            ((value << 16) & 0xffff0000);
+    value = ((value >> 8) & 0x00ff00ff) | ((value << 8) & 0xff00ff00);
+    value = ((value >> 16) & 0x0000ffff) | ((value << 16) & 0xffff0000);
     return value;
 }
 
 static inline uint64_t Swap_(uint64_t value) {
     value = (value & 0x00000000ffffffff) << 32 | (value & 0xffffffff00000000) >> 32;
     value = (value & 0x0000ffff0000ffff) << 16 | (value & 0xffff0000ffff0000) >> 16;
-    value = (value & 0x00ff00ff00ff00ff) << 8  | (value & 0xff00ff00ff00ff00) >> 8;
+    value = (value & 0x00ff00ff00ff00ff) << 8 | (value & 0xff00ff00ff00ff00) >> 8;
     return value;
 }
 
@@ -771,7 +739,7 @@ class Swapped {
     {
     }
 
-  public:
+public:
     Swapped(bool swapped) :
         swapped_(swapped)
     {
@@ -786,11 +754,11 @@ class Swapped {
 class Data :
     public Swapped
 {
-  private:
+private:
     void *base_;
     size_t size_;
 
-  public:
+public:
     Data(void *base, size_t size) :
         base_(base),
         size_(size)
@@ -806,58 +774,48 @@ class Data :
     }
 };
 
-class MachHeader :
-    public Data
-{
-  private:
+class MachHeader : public Data {
+private:
     bool bits64_;
 
     struct mach_header *mach_header_;
     struct load_command *load_command_;
 
-  public:
+public:
     MachHeader(void *base, size_t size) :
-        Data(base, size)
-    {
-        mach_header_ = (mach_header *) base;
+        Data(base, size) {
+        mach_header_ = (mach_header *)base;
 
         switch (Swap(mach_header_->magic)) {
-            case MH_CIGAM:
-                swapped_ = !swapped_;
-            case MH_MAGIC:
-                bits64_ = false;
+        case MH_CIGAM:
+            swapped_ = !swapped_;
+        case MH_MAGIC:
+            bits64_ = false;
             break;
 
-            case MH_CIGAM_64:
-                swapped_ = !swapped_;
-            case MH_MAGIC_64:
-                bits64_ = true;
+        case MH_CIGAM_64:
+            swapped_ = !swapped_;
+        case MH_MAGIC_64:
+            bits64_ = true;
             break;
 
-            default:
-                fprintf(stderr, "ldid: Unknown header magic\nAre you sure that is a Mach-O?\n");
-                exit(1);
+        default:
+            _assert(false);
         }
 
         void *post = mach_header_ + 1;
         if (bits64_)
-            post = (uint32_t *) post + 1;
-        load_command_ = (struct load_command *) post;
+            post = (uint32_t *)post + 1;
+        load_command_ = (struct load_command *)post;
 
-        if (Swap(mach_header_->filetype) != MH_EXECUTE &&
-            Swap(mach_header_->filetype) != MH_DYLIB &&
-            Swap(mach_header_->filetype) != MH_DYLINKER &&
-            Swap(mach_header_->filetype) != MH_BUNDLE) {
-            fprintf(stderr, "ldid: Unsupported Mach-O type\n");
-            exit(1);
-        }
+        _assert(Swap(mach_header_->filetype) == MH_EXECUTE || Swap(mach_header_->filetype) == MH_DYLIB || Swap(mach_header_->filetype) == MH_DYLINKER || Swap(mach_header_->filetype) == MH_BUNDLE);
     }
 
     bool Bits64() const {
         return bits64_;
     }
 
-    struct mach_header *operator ->() const {
+    struct mach_header *operator->() const {
         return mach_header_;
     }
 
@@ -883,13 +841,13 @@ class MachHeader :
         struct load_command *load_command = load_command_;
         for (uint32_t cmd = 0; cmd != Swap(mach_header_->ncmds); ++cmd) {
             load_commands.push_back(load_command);
-            load_command = (struct load_command *) ((uint8_t *) load_command + Swap(load_command->cmdsize));
+            load_command = (struct load_command *)((uint8_t *)load_command + Swap(load_command->cmdsize));
         }
 
         return load_commands;
     }
 
-    void ForSection(const ldid::Functor<void (const char *, const char *, void *, size_t)> &code) const {
+    void ForSection(const ldid::Functor<void(const char *, const char *, void *, size_t)> &code) const {
         _foreach (load_command, GetLoadCommands())
             switch (Swap(load_command->cmd)) {
                 case LC_SEGMENT: {
@@ -919,10 +877,10 @@ class MachHeader :
 class FatMachHeader :
     public MachHeader
 {
-  private:
+private:
     fat_arch *fat_arch_;
 
-  public:
+public:
     FatMachHeader(void *base, size_t size, fat_arch *fat_arch) :
         MachHeader(base, size),
         fat_arch_(fat_arch)
@@ -937,11 +895,11 @@ class FatMachHeader :
 class FatHeader :
     public Data
 {
-  private:
+private:
     fat_header *fat_header_;
     std::vector<FatMachHeader> mach_headers_;
 
-  public:
+public:
     FatHeader(void *base, size_t size) :
         Data(base, size)
     {
@@ -960,7 +918,7 @@ class FatHeader :
             for (arch = 0; arch != fat_narch; ++arch) {
                 uint32_t arch_offset = Swap(fat_arch->offset);
                 uint32_t arch_size = Swap(fat_arch->size);
-                mach_headers_.push_back(FatMachHeader((uint8_t *) base + arch_offset, arch_size, fat_arch));
+                mach_headers_.push_back(FatMachHeader((uint8_t *)base + arch_offset, arch_size, fat_arch));
                 ++fat_arch;
             }
         }
@@ -974,7 +932,7 @@ class FatHeader :
         return fat_header_ != NULL;
     }
 
-    struct fat_header *operator ->() const {
+    struct fat_header *operator->() const {
         return fat_header_;
     }
 
@@ -1097,39 +1055,39 @@ enum Kind : uint32_t {
 };
 
 enum ExprOp : uint32_t {
-    opFalse, // unconditionally false
-    opTrue, // unconditionally true
-    opIdent, // match canonical code [string]
-    opAppleAnchor, // signed by Apple as Apple's product
-    opAnchorHash, // match anchor [cert hash]
-    opInfoKeyValue, // *legacy* - use opInfoKeyField [key; value]
-    opAnd, // binary prefix expr AND expr [expr; expr]
-    opOr, // binary prefix expr OR expr [expr; expr]
-    opCDHash, // match hash of CodeDirectory directly [cd hash]
-    opNot, // logical inverse [expr]
-    opInfoKeyField, // Info.plist key field [string; match suffix]
-    opCertField, // Certificate field [cert index; field name; match suffix]
-    opTrustedCert, // require trust settings to approve one particular cert [cert index]
-    opTrustedCerts, // require trust settings to approve the cert chain
-    opCertGeneric, // Certificate component by OID [cert index; oid; match suffix]
+    opFalse,              // unconditionally false
+    opTrue,               // unconditionally true
+    opIdent,              // match canonical code [string]
+    opAppleAnchor,        // signed by Apple as Apple's product
+    opAnchorHash,         // match anchor [cert hash]
+    opInfoKeyValue,       // *legacy* - use opInfoKeyField [key; value]
+    opAnd,                // binary prefix expr AND expr [expr; expr]
+    opOr,                 // binary prefix expr OR expr [expr; expr]
+    opCDHash,             // match hash of CodeDirectory directly [cd hash]
+    opNot,                // logical inverse [expr]
+    opInfoKeyField,       // Info.plist key field [string; match suffix]
+    opCertField,          // Certificate field [cert index; field name; match suffix]
+    opTrustedCert,        // require trust settings to approve one particular cert [cert index]
+    opTrustedCerts,       // require trust settings to approve the cert chain
+    opCertGeneric,        // Certificate component by OID [cert index; oid; match suffix]
     opAppleGenericAnchor, // signed by Apple in any capacity
-    opEntitlementField, // entitlement dictionary field [string; match suffix]
-    opCertPolicy, // Certificate policy by OID [cert index; oid; match suffix]
-    opNamedAnchor, // named anchor type
-    opNamedCode, // named subroutine
-    opPlatform, // platform constraint [integer]
-    exprOpCount // (total opcode count in use)
+    opEntitlementField,   // entitlement dictionary field [string; match suffix]
+    opCertPolicy,         // Certificate policy by OID [cert index; oid; match suffix]
+    opNamedAnchor,        // named anchor type
+    opNamedCode,          // named subroutine
+    opPlatform,           // platform constraint [integer]
+    exprOpCount           // (total opcode count in use)
 };
 
 enum MatchOperation {
-    matchExists, // anything but explicit "false" - no value stored
-    matchEqual, // equal (CFEqual)
-    matchContains, // partial match (substring)
-    matchBeginsWith, // partial match (initial substring)
-    matchEndsWith, // partial match (terminal substring)
-    matchLessThan, // less than (string with numeric comparison)
-    matchGreaterThan, // greater than (string with numeric comparison)
-    matchLessEqual, // less or equal (string with numeric comparison)
+    matchExists,       // anything but explicit "false" - no value stored
+    matchEqual,        // equal (CFEqual)
+    matchContains,     // partial match (substring)
+    matchBeginsWith,   // partial match (initial substring)
+    matchEndsWith,     // partial match (terminal substring)
+    matchLessThan,     // less than (string with numeric comparison)
+    matchGreaterThan,  // greater than (string with numeric comparison)
+    matchLessEqual,    // less or equal (string with numeric comparison)
     matchGreaterEqual, // greater or equal (string with numeric comparison)
 };
 
@@ -1269,10 +1227,10 @@ struct CodesignAllocation {
 
 #ifndef LDID_NOTOOLS
 class File {
-  private:
+private:
     int file_;
 
-  public:
+public:
     File() :
         file_(-1)
     {
@@ -1290,10 +1248,7 @@ class File {
 
     void open(const char *path, int flags) {
         file_ = ::open(path, flags);
-        if (file_ == -1) {
-            fprintf(stderr, "ldid: %s: %s\n", path, strerror(errno));
-            exit(1);
-        }
+        _assert(file_ == -1);
     }
 
     int file() const {
@@ -1302,12 +1257,12 @@ class File {
 };
 
 class Map {
-  private:
+private:
     File file_;
     void *data_;
     size_t size_;
 
-  public:
+public:
     Map() :
         data_(NULL),
         size_(0)
@@ -1345,10 +1300,7 @@ class Map {
         size_ = stat.st_size;
 
         data_ = mmap(NULL, size_, pflag, mflag, file, 0);
-        if (data_ == MAP_FAILED) {
-            fprintf(stderr, "ldid: mmap: %s\n", strerror(errno));
-            exit(1);
-        }
+        _assert(data_ != MAP_FAILED);
     }
 
     void open(const std::string &path, bool edit) {
@@ -1412,16 +1364,13 @@ std::string Analyze(const void *data, size_t size) {
             if (entitlements.empty())
                 entitlements.assign(data, size);
             else
-               if (entitlements.compare(0, entitlements.size(), data, size) != 0) {
-                   fprintf(stderr, "ldid: Entitlements do not match\n");
-                   exit(1);
-               }
+                _assert(entitlements.compare(0, entitlements.size(), data, size) == 0);
         }));
 
     return entitlements;
 }
 
-static void Allocate(const void *idata, size_t isize, std::streambuf &output, const Functor<size_t (const MachHeader &, Baton &, size_t)> &allocate, const Functor<size_t (const MachHeader &, const Baton &, std::streambuf &output, size_t, size_t, size_t, const std::string &, const char *, const Progress &)> &save, const Progress &progress) {
+static void Allocate(const void *idata, size_t isize, std::streambuf &output, const Functor<size_t(const MachHeader &, Baton &, size_t)> &allocate, const Functor<size_t(const MachHeader &, const Baton &, std::streambuf &output, size_t, size_t, size_t, const std::string &, const char *, const Functor<void(double)> &)> &save, const Functor<void(double)> &percent) {
     FatHeader source(const_cast<void *>(idata), isize);
 
     size_t offset(0);
@@ -1497,21 +1446,22 @@ static void Allocate(const void *idata, size_t isize, std::streambuf &output, co
 
         if (fat_arch != NULL)
             align = source.Swap(fat_arch->align);
-        else switch (mach_header.GetCPUType()) {
-            case CPU_TYPE_POWERPC:
-            case CPU_TYPE_POWERPC64:
-            case CPU_TYPE_X86:
-            case CPU_TYPE_X86_64:
-                align = 0xc;
-                break;
-            case CPU_TYPE_ARM:
-            case CPU_TYPE_ARM64:
-            case CPU_TYPE_ARM64_32:
-                align = 0xe;
-                break;
-            default:
-                align = 0x0;
-                break;
+        else
+            switch (mach_header.GetCPUType()) {
+                case CPU_TYPE_POWERPC:
+                case CPU_TYPE_POWERPC64:
+                case CPU_TYPE_X86:
+                case CPU_TYPE_X86_64:
+                    align = 0xc;
+                    break;
+                case CPU_TYPE_ARM:
+                case CPU_TYPE_ARM64:
+                case CPU_TYPE_ARM64_32:
+                    align = 0xe;
+                    break;
+                default:
+                    align = 0x0;
+                    break;
         }
 
         const char *arch(NULL);
@@ -1573,7 +1523,7 @@ static void Allocate(const void *idata, size_t isize, std::streambuf &output, co
         }(), "FAT slice >=4GiB not currently supported");
 
         _foreach (allocation, allocations) {
-            auto &mach_header(allocation.mach_header_);
+          auto &mach_header(allocation.mach_header_);
 
             fat_arch fat_arch;
             fat_arch.cputype = Swap(mach_header->cputype);
@@ -1587,7 +1537,6 @@ static void Allocate(const void *idata, size_t isize, std::streambuf &output, co
     }
 
     _foreach (allocation, allocations) {
-        progress(allocation.arch_);
         auto &mach_header(allocation.mach_header_);
 
         pad(output, allocation.offset_ - position);
@@ -1699,13 +1648,13 @@ static void Allocate(const void *idata, size_t isize, std::streambuf &output, co
         std::string overlap(altern.str());
         overlap.append(top + overlap.size(), Align(overlap.size(), 0x1000) - overlap.size());
 
-        put(output, top + (position - begin), allocation.size_ - (position - begin), progress);
+        put(output, top + (position - begin), allocation.size_ - (position - begin), percent);
         position = begin + allocation.size_;
 
         pad(output, allocation.limit_ - allocation.size_);
         position += allocation.limit_ - allocation.size_;
 
-        size_t saved(save(mach_header, allocation.baton_, output, allocation.limit_, left, right, overlap, top, progress));
+        size_t saved(save(mach_header, allocation.baton_, output, allocation.limit_, left, right, overlap, top, percent));
         if (allocation.alloc_ > saved)
             pad(output, allocation.alloc_ - saved);
         else
@@ -1762,38 +1711,30 @@ static size_t put(std::streambuf &output, uint32_t magic, const Blobs &blobs) {
 }
 
 class Buffer {
-  private:
+private:
     BIO *bio_;
 
-  public:
+public:
     Buffer(BIO *bio) :
-        bio_(bio)
-    {
+        bio_(bio) {
         _assert(bio_ != NULL);
     }
 
     Buffer() :
-        bio_(BIO_new(BIO_s_mem()))
-    {
+        bio_(BIO_new(BIO_s_mem())) {
     }
 
     Buffer(const char *data, size_t size) :
-        Buffer(BIO_new_mem_buf(const_cast<char *>(data), size))
-    {
+        Buffer(BIO_new_mem_buf(const_cast<char *>(data), size)) {
     }
 
     Buffer(const std::string &data) :
-        Buffer(data.data(), data.size())
-    {
+        Buffer(data.data(), data.size()) {
     }
 
     Buffer(PKCS7 *pkcs) :
-        Buffer()
-    {
-        if (i2d_PKCS7_bio(bio_, pkcs) == 0){
-            fprintf(stderr, "ldid: An error occured while getting the PKCS7 file: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        Buffer() {
+        _assert(i2d_PKCS7_bio(bio_, pkcs) != 0);
     }
 
     ~Buffer() {
@@ -1812,48 +1753,34 @@ class Buffer {
 };
 
 class Stuff {
-  private:
+private:
     PKCS12 *value_;
     EVP_PKEY *key_;
     X509 *cert_;
     STACK_OF(X509) *ca_;
 
-  public:
+public:
     Stuff(BIO *bio) :
         value_(d2i_PKCS12_bio(bio, NULL)),
-        ca_(NULL)
-    {
-        if (value_ == NULL){
-            fprintf(stderr, "ldid: An error occured while getting the PKCS12 file: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
-
+        ca_(NULL) {
+        _assert(value_ != NULL);
+        
         if (PKCS12_verify_mac(value_, "", 0) == 0 && !flag_U) {
             char passbuf[2048];
             UI_UTIL_read_pw_string(passbuf, 2048, "Enter password: ", 0);
             password = passbuf;
         }
-
-        if (PKCS12_parse(value_, password.c_str(), &key_, &cert_, &ca_) <= 0){
-            fprintf(stderr, "ldid: An error occured while parsing: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
-        if (key_ == NULL || cert_ == NULL){
-            fprintf(stderr, "ldid: An error occured while parsing: %s\nYour p12 cert might not be valid\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(PKCS12_parse(value_, password.c_str(), &key_, &cert_, &ca_) != 0);
+        _assert(key_ != NULL);
+        _assert(cert_ != NULL);
 
         if (ca_ == NULL)
             ca_ = sk_X509_new_null();
-        if (ca_ == NULL){
-            fprintf(stderr, "ldid: An error occured while parsing: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(ca_ != NULL);
     }
 
     Stuff(const std::string &data) :
-        Stuff(Buffer(data))
-    {
+        Stuff(Buffer(data)) {
     }
 
     ~Stuff() {
@@ -1881,25 +1808,22 @@ class Stuff {
 };
 
 class Octet {
-  private:
+private:
     ASN1_OCTET_STRING *value_;
 
-  public:
+public:
     Octet() :
-        value_(ASN1_OCTET_STRING_new())
-    {
+        value_(ASN1_OCTET_STRING_new()) {
         _assert(value_ != NULL);
     }
 
     Octet(const std::string &value) :
-        Octet()
-    {
+        Octet() {
         _assert(ASN1_STRING_set(value_, value.data(), value.size()));
     }
 
     Octet(const uint8_t *data, size_t size) :
-        Octet()
-    {
+        Octet() {
         _assert(ASN1_STRING_set(value_, data, size));
     }
 
@@ -1948,29 +1872,20 @@ ASN1_NDEF_SEQUENCE(APPLE_CDATTR) = {
 IMPLEMENT_ASN1_FUNCTIONS(APPLE_CDATTR)
 
 class Signature {
-  private:
+private:
     PKCS7 *value_;
 
-  public:
+public:
     Signature(const Stuff &stuff, const Buffer &data, const std::string &xml, const ldid::Hash &hash) {
         value_ = PKCS7_new();
-        if (value_ == NULL){
-            fprintf(stderr, "ldid: An error occured while getting creating PKCS7 file: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(value_ != NULL);
 
-        if (PKCS7_set_type(value_, NID_pkcs7_signed) == 0 ||
-           PKCS7_content_new(value_, NID_pkcs7_data) == 0) {
-            fprintf(stderr, "ldid: An error occured while getting creating PKCS7 file: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(PKCS7_set_type(value_, NID_pkcs7_signed));
+        _assert(PKCS7_content_new(value_, NID_pkcs7_data));
 
         STACK_OF(X509) *certs(stuff);
         for (unsigned i(0), e(sk_X509_num(certs)); i != e; i++) {
-            if (PKCS7_add_certificate(value_, sk_X509_value(certs, e - i - 1)) == 0) {
-                fprintf(stderr, "ldid: An error occured while signing: %s\n", ERR_error_string(ERR_get_error(), NULL));
-                exit(1);
-            }
+            _assert(PKCS7_add_certificate(value_, sk_X509_value(certs, e - i - 1)));
         }
 
         STACK_OF(X509_ATTRIBUTE) *attributes(sk_X509_ATTRIBUTE_new_null());
@@ -1978,10 +1893,8 @@ class Signature {
         _scope({ sk_X509_ATTRIBUTE_pop_free(attributes, X509_ATTRIBUTE_free); });
 
         auto info(PKCS7_sign_add_signer(value_, stuff, stuff, NULL, PKCS7_NOSMIMECAP));
-        if (info == NULL){
-            fprintf(stderr, "ldid: An error occured while signing: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(info != NULL);
+        // _assert(PKCS7_add_certificate(value_, stuff));
 
         {
             auto attribute(X509_ATTRIBUTE_create(NID_pkcs9_contentType, V_ASN1_OBJECT, OBJ_nid2obj(NID_pkcs7_data)));
@@ -2039,10 +1952,7 @@ class Signature {
         _assert(PKCS7_set_signed_attributes(info, attributes) != 0);
         PKCS7_set_detached(value_, 1);
 
-        if (PKCS7_final(value_, data, PKCS7_BINARY) == 0) {
-            fprintf(stderr, "ldid: Failed to sign: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(PKCS7_final(value_, data, PKCS7_BINARY) != 0);
     }
 
     ~Signature() {
@@ -2054,10 +1964,8 @@ class Signature {
     }
 };
 
-class NullBuffer :
-    public std::streambuf
-{
-  public:
+class NullBuffer : public std::streambuf {
+public:
     virtual std::streamsize xsputn(const char_type *data, std::streamsize size) {
         return size;
     }
@@ -2067,19 +1975,16 @@ class NullBuffer :
     }
 };
 
-class HashBuffer :
-    public std::streambuf
-{
-  private:
+class HashBuffer : public std::streambuf {
+private:
     ldid::Hash &hash_;
 
     EVP_MD_CTX *sha1_;
     EVP_MD_CTX *sha256_;
 
-  public:
+public:
     HashBuffer(ldid::Hash &hash) :
-        hash_(hash)
-    {
+        hash_(hash) {
         sha1_ = EVP_MD_CTX_new();
         sha256_ = EVP_MD_CTX_new();
 
@@ -2110,17 +2015,14 @@ class HashBuffer :
     }
 };
 
-class HashProxy :
-    public HashBuffer
-{
-  private:
+class HashProxy : public HashBuffer {
+private:
     std::streambuf &buffer_;
 
-  public:
+public:
     HashProxy(ldid::Hash &hash, std::streambuf &buffer) :
         HashBuffer(hash),
-        buffer_(buffer)
-    {
+        buffer_(buffer) {
     }
 
     virtual std::streamsize xsputn(const char_type *data, std::streamsize size) {
@@ -2135,7 +2037,7 @@ static bool Starts(const std::string &lhs, const std::string &rhs) {
 }
 
 class Split {
-  public:
+public:
     std::string dir;
     std::string base;
 
@@ -2204,25 +2106,13 @@ namespace ldid {
 
 static void get(std::string &value, X509_NAME *name, int nid) {
     auto index(X509_NAME_get_index_by_NID(name, nid, -1));
-    if (index < 0) {
-        fprintf(stderr, "ldid: An error occursed while parsing the certificate: %s\n", ERR_error_string(ERR_get_error(), NULL));
-        exit(1);
-    }
+    _assert(index >= 0);
     auto next(X509_NAME_get_index_by_NID(name, nid, index));
-    if (next != -1) {
-        fprintf(stderr, "ldid: An error occursed while parsing the certificate: %s\n", ERR_error_string(ERR_get_error(), NULL));
-        exit(1);
-    }
+    _assert(next == -1);
     auto entry(X509_NAME_get_entry(name, index));
-    if (entry == NULL) {
-        fprintf(stderr, "ldid: An error occursed while parsing the certificate: %s\n", ERR_error_string(ERR_get_error(), NULL));
-        exit(1);
-    }
+    _assert(entry != NULL);
     auto asn(X509_NAME_ENTRY_get_data(entry));
-    if (asn == NULL) {
-        fprintf(stderr, "ldid: An error occursed while parsing the certificate: %s\n", ERR_error_string(ERR_get_error(), NULL));
-        exit(1);
-    }
+    _assert(asn != NULL);
     value.assign(reinterpret_cast<const char *>(ASN1_STRING_get0_data(asn)), ASN1_STRING_length(asn));
 }
 
@@ -2246,9 +2136,8 @@ static void req(std::streambuf &buffer, uint8_t (&&data)[Size_]) {
     put(buffer, zeros, 3 - (Size_ + 3) % 4);
 }
 
-Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, uint32_t flags, uint8_t platform, const Progress &progress) {
+Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, uint32_t flags, uint8_t platform, const Functor<void(double)> &percent) {
     Hash hash;
-
 
     std::string team;
     std::string common;
@@ -2256,10 +2145,7 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
     if (!key.empty()) {
         Stuff stuff(key);
         auto name(X509_get_subject_name(stuff));
-        if (name == NULL){
-            fprintf(stderr, "ldid: Your certificate might not be valid: %s\n", ERR_error_string(ERR_get_error(), NULL));
-            exit(1);
-        }
+        _assert(name != NULL);
         get(team, name, NID_organizationalUnitName);
         get(common, name, NID_commonName);
     }
@@ -2287,13 +2173,12 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
         req(requirement, common);
         req(requirement, opCertGeneric);
         req(requirement, 1);
-        req(requirement, (uint8_t []) {APPLE_EXTENSION_OID, 2, 1});
+        req(requirement, (uint8_t[]) {APPLE_EXTENSION_OID, 2, 1});
         req(requirement, matchExists);
         insert(blobs, 3, CSMAGIC_REQUIREMENT, requirement);
 
         put(backing, CSMAGIC_REQUIREMENTS, blobs);
     }
-
 
     // XXX: this is just a "sufficiently large number"
     size_t certificate(0x3000);
@@ -2325,17 +2210,11 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
         if (!baton.entitlements_.empty() || !entitlements.empty()) {
             auto combined(plist(baton.entitlements_));
             _scope({ plist_free(combined); });
-            if (plist_get_node_type(combined) != PLIST_DICT) {
-                fprintf(stderr, "ldid: Existing entitlements are in wrong format\n");
-                exit(1);
-            };
+            _assert(plist_get_node_type(combined) == PLIST_DICT);
 
             auto merging(plist(entitlements));
             _scope({ plist_free(merging); });
-            if (plist_get_node_type(merging) != PLIST_DICT) {
-                fprintf(stderr, "ldid: Entitlements need a root key of dict\n");
-                exit(1);
-            };
+            _assert(plist_get_node_type(merging) == PLIST_DICT);
 
             plist_dict_iter iterator(NULL);
             plist_dict_new_iter(merging, &iterator);
@@ -2395,12 +2274,10 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
         }
 
         return alloc;
-    }), fun([&](const MachHeader &mach_header, const Baton &baton, std::streambuf &output, size_t limit, size_t left, size_t right, const std::string &overlap, const char *top, const Progress &progress) -> size_t {
+    }), fun([&](const MachHeader &mach_header, const Baton &baton, std::streambuf &output, size_t limit, size_t left, size_t right, const std::string &overlap, const char *top, const Functor<void(double)> &percent) -> size_t {
         Blobs blobs;
 
-        if (true) {
-            insert(blobs, CSSLOT_REQUIREMENTS, backing);
-        }
+        insert(blobs, CSSLOT_REQUIREMENTS, backing);
 
         uint64_t execs(0);
         if (mach_header.Swap(mach_header->filetype) == MH_EXECUTE)
@@ -2525,15 +2402,15 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
             _foreach (slot, posts)
                 memcpy(hashes - slot.first * algorithm.size_, algorithm[slot.second], algorithm.size_);
 
-            progress(0);
+            percent(0);
             if (normal != 1)
                 for (size_t i = 0; i != normal - 1; ++i) {
                     algorithm(hashes + i * algorithm.size_, (PageSize_ * i < overlap.size() ? overlap.data() : top) + PageSize_ * i, PageSize_);
-                    progress(double(i) / normal);
+                    percent(double(i) / normal);
                 }
             if (normal != 0)
                 algorithm(hashes + (normal - 1) * algorithm.size_, top + PageSize_ * (normal - 1), ((limit - 1) % PageSize_) + 1);
-            progress(1);
+            percent(1);
 
             put(data, storage.data(), storage.size());
 
@@ -2589,18 +2466,18 @@ Hash Sign(const void *idata, size_t isize, std::streambuf &output, const std::st
         }
 
         return put(output, CSMAGIC_EMBEDDED_SIGNATURE, blobs);
-    }), progress);
+    }), percent);
 
     return hash;
 }
 
 #ifndef LDID_NOTOOLS
-static void Unsign(void *idata, size_t isize, std::streambuf &output, const Progress &progress) {
+static void Unsign(void *idata, size_t isize, std::streambuf &output, const Functor<void(double)> &percent) {
     Allocate(idata, isize, output, fun([](const MachHeader &mach_header, Baton &baton, size_t size) -> size_t {
         return 0;
-    }), fun([](const MachHeader &mach_header, const Baton &baton, std::streambuf &output, size_t limit, size_t left, size_t right, const std::string &overlap, const char *top, const Progress &progress) -> size_t {
+    }), fun([](const MachHeader &mach_header, const Baton &baton, std::streambuf &output, size_t limit, size_t left, size_t right, const std::string &overlap, const char *top, const Functor<void(double)> &percent) -> size_t {
         return 0;
-    }), progress);
+    }), percent);
 }
 
 std::string DiskFolder::Path(const std::string &path) const {
@@ -2608,8 +2485,7 @@ std::string DiskFolder::Path(const std::string &path) const {
 }
 
 DiskFolder::DiskFolder(const std::string &path) :
-    path_(path)
-{
+    path_(path) {
     _assert_(path_.size() != 0 && path_[path_.size() - 1] == '/', "missing / on %s", path_.c_str());
 }
 
@@ -2683,7 +2559,7 @@ void DiskFolder::Find(const std::string &root, const std::string &base, const Fu
     }
 }
 
-void DiskFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void (std::streambuf &)> &code) {
+void DiskFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void(std::streambuf &)> &code) {
     if (!edit) {
         NullBuffer save;
         code(save);
@@ -2699,7 +2575,7 @@ bool DiskFolder::Look(const std::string &path) const {
     return _syscall(access(Path(path).c_str(), R_OK), ENOENT) == 0;
 }
 
-void DiskFolder::Open(const std::string &path, const Functor<void (std::streambuf &, size_t, const void *)> &code) const {
+void DiskFolder::Open(const std::string &path, const Functor<void(std::streambuf &, size_t, const void *)> &code) const {
     std::filebuf data;
     auto result(data.open(Path(path).c_str(), std::ios::binary | std::ios::in));
     _assert_(result == &data, "DiskFolder::Open(%s)", Path(path).c_str());
@@ -2709,15 +2585,14 @@ void DiskFolder::Open(const std::string &path, const Functor<void (std::streambu
     code(data, length, NULL);
 }
 
-void DiskFolder::Find(const std::string &path, const Functor<void (const std::string &)> &code, const Functor<void (const std::string &, const Functor<std::string ()> &)> &link) const {
+void DiskFolder::Find(const std::string &path, const Functor<void(const std::string &)> &code, const Functor<void(const std::string &, const Functor<std::string()> &)> &link) const {
     Find(path, "", code, link);
 }
 #endif // LDID_NOTOOLS
 
 SubFolder::SubFolder(Folder &parent, const std::string &path) :
     parent_(parent),
-    path_(path)
-{
+    path_(path) {
     _assert_(path_.size() == 0 || path_[path_.size() - 1] == '/', "missing / on %s", path_.c_str());
 }
 
@@ -2725,7 +2600,7 @@ std::string SubFolder::Path(const std::string &path) const {
     return path_ + path;
 }
 
-void SubFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void (std::streambuf &)> &code) {
+void SubFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void(std::streambuf &)> &code) {
     return parent_.Save(Path(path), edit, flag, code);
 }
 
@@ -2733,11 +2608,11 @@ bool SubFolder::Look(const std::string &path) const {
     return parent_.Look(Path(path));
 }
 
-void SubFolder::Open(const std::string &path, const Functor<void (std::streambuf &, size_t, const void *)> &code) const {
+void SubFolder::Open(const std::string &path, const Functor<void(std::streambuf &, size_t, const void *)> &code) const {
     return parent_.Open(Path(path), code);
 }
 
-void SubFolder::Find(const std::string &path, const Functor<void (const std::string &)> &code, const Functor<void (const std::string &, const Functor<std::string ()> &)> &link) const {
+void SubFolder::Find(const std::string &path, const Functor<void(const std::string &)> &code, const Functor<void(const std::string &, const Functor<std::string()> &)> &link) const {
     return parent_.Find(Path(path), code, link);
 }
 
@@ -2748,17 +2623,16 @@ std::string UnionFolder::Map(const std::string &path) const {
     return remap->second;
 }
 
-void UnionFolder::Map(const std::string &path, const Functor<void (const std::string &)> &code, const std::string &file, const Functor<void (const Functor<void (std::streambuf &, size_t, const void *)> &)> &save) const {
+void UnionFolder::Map(const std::string &path, const Functor<void(const std::string &)> &code, const std::string &file, const Functor<void(const Functor<void(std::streambuf &, size_t, const void *)> &)> &save) const {
     if (file.size() >= path.size() && file.substr(0, path.size()) == path)
         code(file.substr(path.size()));
 }
 
 UnionFolder::UnionFolder(Folder &parent) :
-    parent_(parent)
-{
+    parent_(parent) {
 }
 
-void UnionFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void (std::streambuf &)> &code) {
+void UnionFolder::Save(const std::string &path, bool edit, const void *flag, const Functor<void(std::streambuf &)> &code) {
     return parent_.Save(Map(path), edit, flag, code);
 }
 
@@ -2769,7 +2643,7 @@ bool UnionFolder::Look(const std::string &path) const {
     return parent_.Look(Map(path));
 }
 
-void UnionFolder::Open(const std::string &path, const Functor<void (std::streambuf &, size_t, const void *)> &code) const {
+void UnionFolder::Open(const std::string &path, const Functor<void(std::streambuf &, size_t, const void *)> &code) const {
     auto file(resets_.find(path));
     if (file == resets_.end())
         return parent_.Open(Map(path), code);
@@ -2781,9 +2655,9 @@ void UnionFolder::Open(const std::string &path, const Functor<void (std::streamb
     code(data, length, entry.flag_);
 }
 
-void UnionFolder::Find(const std::string &path, const Functor<void (const std::string &)> &code, const Functor<void (const std::string &, const Functor<std::string ()> &)> &link) const {
+void UnionFolder::Find(const std::string &path, const Functor<void(const std::string &)> &code, const Functor<void(const std::string &, const Functor<std::string()> &)> &link) const {
     for (auto &reset : resets_)
-        Map(path, code, reset.first, fun([&](const Functor<void (std::streambuf &, size_t, const void *)> &code) {
+        Map(path, code, reset.first, fun([&](const Functor<void(std::streambuf &, size_t, const void *)> &code) {
             auto &entry(reset.second);
             auto &data(*entry.data_);
             auto length(data.pubseekoff(0, std::ios::end, std::ios::in));
@@ -2808,8 +2682,8 @@ void UnionFolder::Find(const std::string &path, const Functor<void (const std::s
 }
 
 #ifndef LDID_NOTOOLS
-static void copy(std::streambuf &source, std::streambuf &target, size_t length, const Progress &progress) {
-    progress(0);
+static void copy(std::streambuf &source, std::streambuf &target, size_t length, const ldid::Functor<void(double)> &percent) {
+    percent(0);
     size_t total(0);
     for (;;) {
         char data[4096 * 4];
@@ -2818,7 +2692,7 @@ static void copy(std::streambuf &source, std::streambuf &target, size_t length, 
             break;
         _assert(target.sputn(data, writ) == writ);
         total += writ;
-        progress(double(total) / length);
+        percent(double(total) / length);
     }
 }
 
@@ -2830,32 +2704,23 @@ static plist_t plist(const std::string &data) {
         plist_from_bin(data.data(), data.size(), &plist);
     else
         plist_from_xml(data.data(), data.size(), &plist);
-    if (plist == NULL) {
-        fprintf(stderr, "ldid: Failed to parse plist\n");
-        exit(1);
-    }
+    _assert(plist != NULL);
     return plist;
 }
 
-static void plist_d(std::streambuf &buffer, size_t length, const Functor<void (plist_t)> &code) {
+static void plist_d(std::streambuf &buffer, size_t length, const Functor<void(plist_t)> &code) {
     std::stringbuf data;
-    copy(buffer, data, length, dummy_);
+    copy(buffer, data, length, ldid::fun(dummy));
     auto node(plist(data.str()));
     _scope({ plist_free(node); });
-    if (plist_get_node_type(node) != PLIST_DICT) {
-        fprintf(stderr, "ldid: Unexpected plist type. Expected <dict>\n");
-        exit(1);
-    }
+    _assert(plist_get_node_type(node) == PLIST_DICT);
     code(node);
 }
 
 static std::string plist_s(plist_t node) {
     if (node == NULL)
-        return NULL;
-    if (plist_get_node_type(node) != PLIST_STRING) {
-        fprintf(stderr, "ldid: Unexpected plist type. Expected <string>\n");
-        exit(1);
-    }
+      return NULL;
+    _assert(plist_get_node_type(node) == PLIST_STRING);
     char *data;
     plist_get_string_val(node, &data);
     _scope({ free(data); });
@@ -2871,11 +2736,11 @@ enum Mode {
 };
 
 class Expression {
-  private:
+private:
     regex_t regex_;
     std::vector<std::string> matches_;
 
-  public:
+public:
     Expression(const std::string &code) {
         _assert_(regcomp(&regex_, code.c_str(), REG_EXTENDED) == 0, "regcomp()");
         matches_.resize(regex_.re_nsub + 1);
@@ -2885,7 +2750,7 @@ class Expression {
         regfree(&regex_);
     }
 
-    bool operator ()(const std::string &data) {
+    bool operator()(const std::string &data) {
         regmatch_t matches[matches_.size()];
         auto value(regexec(&regex_, data.c_str(), matches_.size(), matches, 0));
         if (value == REG_NOMATCH)
@@ -2896,7 +2761,7 @@ class Expression {
         return true;
     }
 
-    const std::string &operator [](size_t index) const {
+    const std::string &operator[](size_t index) const {
         return matches_[index];
     }
 };
@@ -2911,27 +2776,25 @@ struct Rule {
     Rule(unsigned weight, Mode mode, const std::string &code) :
         weight_(weight),
         mode_(mode),
-        code_(code)
-    {
+        code_(code) {
     }
 
     Rule(const Rule &rhs) :
         weight_(rhs.weight_),
         mode_(rhs.mode_),
-        code_(rhs.code_)
-    {
+        code_(rhs.code_) {
     }
 
     void Compile() const {
         regex_.reset(new Expression(code_));
     }
 
-    bool operator ()(const std::string &data) const {
+    bool operator()(const std::string &data) const {
         _assert(regex_.get() != NULL);
         return (*regex_)(data);
     }
 
-    bool operator <(const Rule &rhs) const {
+    bool operator<(const Rule &rhs) const {
         if (weight_ > rhs.weight_)
             return true;
         if (weight_ < rhs.weight_)
@@ -2941,22 +2804,22 @@ struct Rule {
 };
 
 struct RuleCode {
-    bool operator ()(const Rule *lhs, const Rule *rhs) const {
+    bool operator()(const Rule *lhs, const Rule *rhs) const {
         return lhs->code_ < rhs->code_;
     }
 };
 
-static Hash Sign(const uint8_t *prefix, size_t size, std::streambuf &buffer, Hash &hash, std::streambuf &save, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, size_t length, uint32_t flags, uint8_t platform, const Progress &progress) {
+static Hash Sign(const uint8_t *prefix, size_t size, std::streambuf &buffer, Hash &hash, std::streambuf &save, const std::string &identifier, const std::string &entitlements, bool merge, const std::string &requirements, const std::string &key, const Slots &slots, size_t length, uint32_t flags, uint8_t platform, const Functor<void(double)> &percent) {
     // XXX: this is a miserable fail
     std::stringbuf temp;
     put(temp, prefix, size);
-    copy(buffer, temp, length - size, progress);
+    copy(buffer, temp, length - size, percent);
     // XXX: this is a stupid hack
     pad(temp, 0x10 - (length & 0xf));
     auto data(temp.str());
 
     HashProxy proxy(hash, save);
-    return Sign(data.data(), data.size(), proxy, identifier, entitlements, merge, requirements, key, slots, flags, platform, progress);
+    return Sign(data.data(), data.size(), proxy, identifier, entitlements, merge, requirements, key, slots, flags, platform, percent);
 }
 
 struct State {
@@ -2971,7 +2834,7 @@ struct State {
     }
 };
 
-Bundle Sign(const std::string &root, Folder &parent, const std::string &key, State &local, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Progress &progress) {
+Bundle Sign(const std::string &root, Folder &parent, const std::string &key, State &local, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Functor<void(const std::string &)> &progress, const Functor<void(double)> &percent) {
     std::string executable;
     std::string identifier;
 
@@ -2989,38 +2852,25 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
             info = "Resources/" + info;
             return "";
         } else {
-            fprintf(stderr, "ldid: Could not find Info.plist\n");
-            exit(1);
+            _assert_(false, "cannot find Info.plist");
         }
     }());
 
     folder.Open(info, fun([&](std::streambuf &buffer, size_t length, const void *flag) {
         plist_d(buffer, length, fun([&](plist_t node) {
-            plist_t nodebuf(plist_dict_get_item(node, "CFBundleExecutable"));
-            if (nodebuf == NULL) {
-                fprintf(stderr, "ldid: Cannot find key CFBundleExecutable\n");
-                exit(1);
-            }
-            executable = plist_s(nodebuf);
-            nodebuf = plist_dict_get_item(node, "CFBundleIdentifier");
-            if (nodebuf == NULL) {
-                fprintf(stderr, "ldid: Cannot find key CFBundleIdentifier\n");
-                exit(1);
-            }
-            identifier = plist_s(nodebuf);
+            executable = plist_s(plist_dict_get_item(node, "CFBundleExecutable"));
+            identifier = plist_s(plist_dict_get_item(node, "CFBundleIdentifier"));
         }));
     }));
 
     if (mac && info == "Info.plist")
         executable = "MacOS/" + executable;
 
-    progress(root + "*");
-
     std::string entitlements;
     folder.Open(executable, fun([&](std::streambuf &buffer, size_t length, const void *flag) {
         // XXX: this is a miserable fail
         std::stringbuf temp;
-        copy(buffer, temp, length, progress);
+        copy(buffer, temp, length, percent);
         // XXX: this is a stupid hack
         pad(temp, 0x10 - (length & 0xf));
         auto data(temp.str());
@@ -3067,22 +2917,22 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
     std::map<std::string, Bundle> bundles;
 
     if (!flag_w) {
-        folder.Find("", fun([&](const std::string &name) {
+      folder.Find(
+          "", fun([&](const std::string &name) {
             if (!nested(name))
-                return;
+              return;
             auto bundle(Split(name).dir);
             if (mac) {
-                _assert(!bundle.empty());
-                bundle = Split(bundle.substr(0, bundle.size() - 1)).dir;
+              _assert(!bundle.empty());
+              bundle = Split(bundle.substr(0, bundle.size() - 1)).dir;
             }
             SubFolder subfolder(folder, bundle);
 
             State remote;
-            bundles[nested[1]] = Sign(root + bundle, subfolder, key, remote, requirements, Starts(name, "PlugIns/") ? alter :
-                static_cast<const Functor<std::string (const std::string &, const std::string &)> &>(fun([&](const std::string &, const std::string &) -> std::string { return entitlements; }))
-            , merge, platform, progress);
+            bundles[nested[1]] = Sign(root + bundle, subfolder, key, remote, requirements, Starts(name, "PlugIns/") ? alter : static_cast<const Functor<std::string (const std::string &, const std::string &)> &>(fun([&](const std::string &, const std::string &) -> std::string { return entitlements; })), merge, platform, progress, percent);
             local.Merge(bundle, remote);
-        }), fun([&](const std::string &name, const Functor<std::string ()> &read) {
+          }),
+          fun([&](const std::string &name, const Functor<std::string ()> &read) {
         }));
     }
 
@@ -3111,7 +2961,7 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
         auto &hash(local.files[name]);
 
         folder.Open(name, fun([&](std::streambuf &data, size_t length, const void *flag) {
-            progress(root + name);
+            // progress(root + name);
 
             union {
                 struct {
@@ -3136,7 +2986,7 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
                         case MH_CIGAM: case MH_CIGAM_64:
                             folder.Save(name, true, flag, fun([&](std::streambuf &save) {
                                 Slots slots;
-                                Sign(header.bytes, size, data, hash, save, identifier, entitlements, merge, requirements, key, slots, length, 0, platform, Progression(progress, root + name));
+                                Sign(header.bytes, size, data, hash, save, identifier, entitlements, merge, requirements, key, slots, length, 0, platform, percent);
                             }));
                             return;
                     }
@@ -3145,12 +2995,12 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
             folder.Save(name, false, flag, fun([&](std::streambuf &save) {
                 HashProxy proxy(hash, save);
                 put(proxy, header.bytes, size);
-                copy(data, proxy, length - size, progress);
+                copy(data, proxy, length - size, percent);
             }));
         }));
-    }), fun([&](const std::string &name, const Functor<std::string ()> &read) {
+    }), fun([&](const std::string &name, const Functor<std::string()> &read) {
         if (exclude(name))
-            return;
+          return;
 
         local.links[name] = read();
     }));
@@ -3267,616 +3117,17 @@ Bundle Sign(const std::string &root, Folder &parent, const std::string &key, Sta
             Slots slots;
             slots[1] = local.files.at(info);
             slots[3] = local.files.at(signature);
-            bundle.hash = Sign(NULL, 0, buffer, local.files[executable], save, identifier, entitlements, merge, requirements, key, slots, length, 0, platform, Progression(progress, root + executable));
+            bundle.hash = Sign(NULL, 0, buffer, local.files[executable], save, identifier, entitlements, merge, requirements, key, slots, length, 0, platform, percent);
         }));
     }));
 
     return bundle;
 }
 
-Bundle Sign(const std::string &root, Folder &folder, const std::string &key, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Progress &progress) {
+Bundle Sign(const std::string &root, Folder &folder, const std::string &key, const std::string &requirements, const Functor<std::string (const std::string &, const std::string &)> &alter, bool merge, uint8_t platform, const Functor<void(const std::string &)> &progress, const Functor<void(double)> &percent) {
     State local;
-    return Sign(root, folder, key, local, requirements, alter, merge, platform, progress);
+    return Sign(root, folder, key, local, requirements, alter, merge, platform, progress, percent);
 }
 
 #endif
 }
-
-std::string Hex(const uint8_t *data, size_t size) {
-    std::string hex;
-    hex.reserve(size * 2);
-    for (size_t i(0); i != size; ++i) {
-        hex += "0123456789abcdef"[data[i] >> 4];
-        hex += "0123456789abcdef"[data[i] & 0xf];
-    }
-    return hex;
-}
-
-static void usage(const char *argv0) {
-    fprintf(stderr, "Link Identity Editor %s\n\n", LDID_VERSION);
-    fprintf(stderr, "Usage: %s [-Acputype:subtype] [-a] [-C[adhoc | enforcement | expires | hard |\n", argv0);
-    fprintf(stderr, "            host | kill | library-validation | restrict | runtime | linker-signed]] [-D] [-d]\n");
-    fprintf(stderr, "            [-Enum:file] [-e] [-H[sha1 | sha256]] [-h] [-Iname]\n");
-    fprintf(stderr, "            [-Kkey.p12 [-Upassword]] [-M] [-P[num]] [-Qrequirements.xml] [-q]\n");
-    fprintf(stderr, "            [-r | -Sfile.xml | -s] [-w] [-u] [-arch arch_type] file ...\n");
-    fprintf(stderr, "Common Options:\n");
-    fprintf(stderr, "   -S[file.xml]  Pseudo-sign using the entitlements in file.xml\n");
-    fprintf(stderr, "   -w            Shallow sign\n");
-    fprintf(stderr, "   -Kkey.p12     Sign using private key in key.p12\n");
-    fprintf(stderr, "   -Upassword    Use password to unlock key.p12\n");
-    fprintf(stderr, "   -M            Merge entitlements with any existing\n");
-    fprintf(stderr, "   -h            Print CDHash of file\n\n");
-    fprintf(stderr, "More information: 'man ldid'\n");
-}
-
-void cleanupfunc(void) {
-    for (const auto &temp : cleanup)
-        remove(temp.c_str());
-}
-
-// #ifndef LDID_NOTOOLS
-// int main(int argc, char *argv[]) {
-//     std::atexit(cleanupfunc);
-//     OpenSSL_add_all_algorithms();
-// # if OPENSSL_VERSION_MAJOR >= 3
-//     OSSL_PROVIDER *legacy = OSSL_PROVIDER_load(NULL, "legacy");
-//     OSSL_PROVIDER *deflt = OSSL_PROVIDER_load(NULL, "default");
-// # endif
-
-//     union {
-//         uint16_t word;
-//         uint8_t byte[2];
-//     } endian = {1};
-
-//     little_ = endian.byte[0];
-
-//     bool flag_r(false);
-//     bool flag_e(false);
-//     bool flag_q(false);
-
-//     bool flag_h(false);
-
-
-//     bool flag_S(false);
-//     bool flag_s(false);
-
-//     bool flag_D(false);
-//     bool flag_d(false);
-
-//     bool flag_A(false);
-//     bool flag_a(false);
-
-//     bool flag_u(false);
-
-//     bool flag_M(false);
-
-//     uint32_t flags(0);
-//     uint8_t platform(0);
-
-//     uint32_t flag_CPUType(_not(uint32_t));
-//     uint32_t flag_CPUSubtype(_not(uint32_t));
-
-//     const char *flag_I(NULL);
-
-
-//     Map entitlements;
-//     Map requirements;
-//     Map key;
-//     ldid::Slots slots;
-
-//     std::vector<std::string> files;
-
-//     if (argc == 1) {
-//         usage(argv[0]);
-//         return 0;
-//     }
-
-//     for (int argi(1); argi != argc; ++argi)
-//         if (argv[argi][0] != '-')
-//             files.push_back(argv[argi]);
-//         else if (strcmp(argv[argi], "-arch") == 0) {
-//             bool foundarch = false;
-//             flag_A = true;
-//             argi++;
-//             if (argi == argc) {
-//                 fprintf(stderr, "ldid: -arch must be followed by an architecture string\n");
-//                 exit(1);
-//             }
-//             for (int i = 0; archs[i].name != NULL; i++) {
-//                 if (strcmp(archs[i].name, argv[argi]) == 0) {
-//                     flag_CPUType = archs[i].cputype;
-//                     flag_CPUSubtype = archs[i].cpusubtype;
-//                     foundarch = true;
-//                 }
-//                 if (foundarch)
-//                     break;
-//             }
-
-//             if (!foundarch) {
-//                 fprintf(stderr, "error: unknown architecture specification flag: -arch %s\n", argv[argi]);
-//                 exit(1);
-//             }
-//         } else switch (argv[argi][1]) {
-//             case 'r':
-//                 if (flag_s || flag_S) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_r = true;
-//             break;
-
-//             case 'e': flag_e = true; break;
-
-//             case 'E': {
-//                 const char *string = argv[argi] + 2;
-//                 const char *colon = strchr(string, ':');
-//                 if (colon == NULL) {
-//                     usage(argv[0]);
-//                     exit(1);
-//                 }
-//                 Map file(colon + 1, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//                 char *arge;
-//                 unsigned number(strtoul(string, &arge, 0));
-//                 if (arge != colon || (number == 0 && errno == EINVAL)) {
-//                     usage(argv[0]);
-//                     exit(1);
-//                 }
-//                 auto &slot(slots[number]);
-//                 for (Algorithm *algorithm : GetAlgorithms())
-//                     (*algorithm)(slot, file.data(), file.size());
-//             } break;
-
-//             case 'q': flag_q = true; break;
-
-//             case 'H': {
-//                 const char *hash = argv[argi] + 2;
-
-//                 if (!flag_H) {
-//                     flag_H = true;
-
-//                     do_sha1 = false;
-//                     do_sha256 = false;
-//                 }
-
-//                 if (strcmp(hash, "sha1") == 0)
-//                     do_sha1 = true;
-//                 else if (strcmp(hash, "sha256") == 0)
-//                     do_sha256 = true;
-//                 else {
-//                     fprintf(stderr, "ldid: only sha1 and sha256 are supported at this time\n");
-//                     exit(1);
-//                 }
-//             } break;
-
-//             case 'h': flag_h = true; break;
-
-//             case 'Q': {
-//                 const char *xml = argv[argi] + 2;
-//                 requirements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//             } break;
-
-//             case 'D': flag_D = true; break;
-//             case 'd': flag_d = true; break;
-
-//             case 'a': flag_a = true; break;
-
-//             case 'A':
-//                 if (flag_A) {
-//                     fprintf(stderr, "ldid: -A can only be specified once\n");
-//                     exit(1);
-//                 }
-//                 flag_A = true;
-//                 if (argv[argi][2] != '\0') {
-//                     const char *cpu = argv[argi] + 2;
-//                     const char *colon = strchr(cpu, ':');
-//                     if (colon == NULL) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                     char *arge;
-//                     flag_CPUType = strtoul(cpu, &arge, 0);
-//                     if (arge != colon || (flag_CPUType == 0 && errno == EINVAL)) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                     flag_CPUSubtype = strtoul(colon + 1, &arge, 0);
-//                     if (arge != argv[argi] + strlen(argv[argi]) || (flag_CPUSubtype == 0 && errno == EINVAL)) {
-//                         usage(argv[0]);
-//                         exit(1);
-//                     }
-//                 }
-//             break;
-
-//             case 'C': {
-//                 const char *name = argv[argi] + 2;
-//                 std::istringstream signtypess(name);
-//                 std::string signtype;
-//                 while (std::getline(signtypess, signtype, ',')) {
-//                     if (signtype == "host")
-//                         flags |= kSecCodeSignatureHost;
-//                     else if (signtype == "adhoc")
-//                         flags |= kSecCodeSignatureAdhoc;
-//                     else if (signtype == "hard")
-//                         flags |= kSecCodeSignatureForceHard;
-//                     else if (signtype == "kill")
-//                         flags |= kSecCodeSignatureForceKill;
-//                     else if (signtype == "expires")
-//                         flags |= kSecCodeSignatureForceExpiration;
-//                     else if (signtype == "restrict")
-//                         flags |= kSecCodeSignatureRestrict;
-//                     else if (signtype == "enforcement")
-//                         flags |= kSecCodeSignatureEnforcement;
-//                     else if (signtype == "library-validation")
-//                         flags |= kSecCodeSignatureLibraryValidation;
-//                     else if (signtype == "runtime")
-//                         flags |= kSecCodeSignatureRuntime;
-//                     else if (signtype == "linker-signed")
-//                         flags |= kSecCodeSignatureLinkerSigned;
-//                     else {
-//                         fprintf(stderr, "ldid: -C: Unsupported option\n");
-//                         exit(1);
-//                     }
-//                 }
-//             } break;
-
-//             case 'P':
-//                 if (argv[argi][2] != '\0') {
-//                     char *platformchar = argv[argi] + 2;
-//                     char *arge;
-//                     platform = strtoul(platformchar, &arge, 0);
-//                 } else {
-//                     platform = 13;
-//                 }
-//             break;
-
-//             case 's':
-//                 if (flag_r || flag_S) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_s = true;
-//                 entitlements.clear();
-//                 flag_M = true;
-//             break;
-
-//             case 'S':
-//                 if (flag_r || flag_s) {
-//                     fprintf(stderr, "ldid: Can only specify one of -r, -S, -s\n");
-//                     exit(1);
-//                 }
-//                 flag_S = true;
-//                 if (argv[argi][2] != '\0') {
-//                     const char *xml = argv[argi] + 2;
-//                     entitlements.open(xml, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//                 }
-//             break;
-
-//             case 'w':
-//                 flag_w = true;
-//             break;
-
-//             case 'M':
-//                 flag_M = true;
-//             break;
-
-//             case 'U':
-//                 flag_U = true;
-//                 password = argv[argi] + 2;
-//             break;
-
-//             case 'K':
-//                 if (argv[argi][2] != '\0')
-//                     key.open(argv[argi] + 2, O_RDONLY, PROT_READ, MAP_PRIVATE);
-//             break;
-
-//             case 'T': break;
-
-//             case 'u': {
-//                 flag_u = true;
-//             } break;
-
-//             case 'I': {
-//                 flag_I = argv[argi] + 2;
-//             } break;
-
-//             default:
-//                 usage(argv[0]);
-//                 return 1;
-//             break;
-//         }
-
-//     if (flag_I != NULL && !flag_S) {
-//         fprintf(stderr, "ldid: -I requires -S\n");
-//         exit(1);
-//     }
-
-//     if (files.empty())
-//         return 0;
-
-//     size_t filei(0), filee(0);
-//     _foreach (file, files) try {
-//         std::string path(file);
-
-//         struct stat info;
-//         if (stat(path.c_str(), &info) == -1) {
-//             fprintf(stderr, "ldid: %s: %s\n", path.c_str(), strerror(errno));
-//             exit(1);
-//         }
-
-//         if (S_ISDIR(info.st_mode)) {
-//             if (!flag_S && !flag_s) {
-//                 fprintf(stderr, "ldid: Only -S and -s can be used on directories\n");
-//                 exit(1);
-//             }
-//             ldid::DiskFolder folder(path + "/");
-//             path += "/" + Sign("", folder, key, requirements, ldid::fun([&](const std::string &, const std::string &) -> std::string { return entitlements; }), flag_M, platform, dummy_).path;
-//         } else if (flag_S || flag_r || flag_s) {
-//             Map input(path, O_RDONLY, PROT_READ, MAP_PRIVATE);
-
-//             std::filebuf output;
-//             Split split(path);
-//             auto temp(Temporary(output, split));
-
-//             if (flag_r)
-//                 ldid::Unsign(input.data(), input.size(), output, dummy_);
-//             else {
-//                 std::string identifier(flag_I ?: split.base.c_str());
-//                 ldid::Sign(input.data(), input.size(), output, identifier, entitlements, flag_M, requirements, key, slots, flags, platform, dummy_);
-//             }
-
-//             input.clear();
-//             output.close();
-
-//             Commit(path, temp);
-//         }
-
-//         Map mapping(path, flag_D ? true : false);
-//         FatHeader fat_header(mapping.data(), mapping.size());
-
-//         _foreach (mach_header, fat_header.GetMachHeaders()) {
-//             struct linkedit_data_command *signature(NULL);
-//             struct encryption_info_command *encryption(NULL);
-
-//             if (flag_A) {
-//                 if (mach_header.GetCPUType() != flag_CPUType)
-//                     continue;
-//                 if (mach_header.GetCPUSubtype() != flag_CPUSubtype)
-//                     continue;
-//             }
-
-//             if (flag_a)
-//                 printf("cpu=0x%x:0x%x\n", mach_header.GetCPUType(), mach_header.GetCPUSubtype());
-
-//             _foreach (load_command, mach_header.GetLoadCommands()) {
-//                 uint32_t cmd(mach_header.Swap(load_command->cmd));
-
-//                 if (cmd == LC_CODE_SIGNATURE)
-//                     signature = reinterpret_cast<struct linkedit_data_command *>(load_command);
-//                 else if (cmd == LC_ENCRYPTION_INFO || cmd == LC_ENCRYPTION_INFO_64)
-//                     encryption = reinterpret_cast<struct encryption_info_command *>(load_command);
-//                 else if (cmd == LC_LOAD_DYLIB) {
-//                     volatile struct dylib_command *dylib_command(reinterpret_cast<struct dylib_command *>(load_command));
-//                     const char *name(reinterpret_cast<const char *>(load_command) + mach_header.Swap(dylib_command->dylib.name));
-
-//                     if (strcmp(name, "/System/Library/Frameworks/UIKit.framework/UIKit") == 0) {
-//                         if (flag_u) {
-//                             Version version;
-//                             version.value = mach_header.Swap(dylib_command->dylib.current_version);
-//                             printf("uikit=%u.%u.%u\n", version.major, version.minor, version.patch);
-//                         }
-//                     }
-//                 }
-//             }
-
-//             if (flag_d && encryption != NULL) {
-//                 printf("cryptid=%d\n", mach_header.Swap(encryption->cryptid));
-//             }
-
-//             if (flag_D) {
-//                 if (encryption == NULL) {
-//                     fprintf(stderr, "ldid: -D requires an encrypted binary\n");
-//                     exit(1);
-//                 }
-//                 encryption->cryptid = mach_header.Swap(0);
-//             }
-
-//             if ((flag_e || flag_q || flag_h) && signature == NULL) {
-//                 fprintf(stderr, "ldid: -e, -q, and -h require a signed binary\n");
-//                 exit(1);
-//             }
-
-//             if (flag_e) {
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 for (size_t index(0); index != Swap(super->count); ++index)
-//                     if (Swap(super->index[index].type) == CSSLOT_ENTITLEMENTS) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         struct Blob *entitlements = reinterpret_cast<struct Blob *>(blob + begin);
-//                         fwrite(entitlements + 1, 1, Swap(entitlements->length) - sizeof(*entitlements), stdout);
-//                     }
-//             }
-
-//             if (flag_q) {
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 for (size_t index(0); index != Swap(super->count); ++index)
-//                     if (Swap(super->index[index].type) == CSSLOT_REQUIREMENTS) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         struct Blob *requirement = reinterpret_cast<struct Blob *>(blob + begin);
-//                         fwrite(requirement, 1, Swap(requirement->length), stdout);
-//                     }
-//             }
-
-//             if (flag_h) {
-//                 #if defined (__WIN32__) || defined (_MSC_VER) || defined (__MINGW32__)
-//                     #define realpath(N,R) _fullpath((R),(N),PATH_MAX)
-//                 #endif
-//                 char *buf = realpath(file.c_str(), NULL);
-//                 if (buf == NULL) {
-//                     fprintf(stderr, "ldid: realpath: %s\n", strerror(errno));
-//                     exit(1);
-//                 }
-//                 printf("Executable=%s\n", buf);
-//                 free(buf);
-
-//                 auto algorithms(GetAlgorithms());
-
-//                 uint32_t data = mach_header.Swap(signature->dataoff);
-
-//                 uint8_t *top = reinterpret_cast<uint8_t *>(mach_header.GetBase());
-//                 uint8_t *blob = top + data;
-//                 struct SuperBlob *super = reinterpret_cast<struct SuperBlob *>(blob);
-
-//                 struct Candidate {
-//                     CodeDirectory *directory_;
-//                     size_t size_;
-//                     Algorithm &algorithm_;
-//                     std::string hash_;
-//                     uint32_t offset;
-//                 };
-
-//                 std::map<uint8_t, Candidate> candidates;
-//                 uint32_t cmsBegin = 0, cmsEnd = 0;
-
-//                 for (size_t index(0); index != Swap(super->count); ++index) {
-//                     auto type(Swap(super->index[index].type));
-//                     if ((type == CSSLOT_CODEDIRECTORY || type >= CSSLOT_ALTERNATE) && type != CSSLOT_SIGNATURESLOT) {
-//                         uint32_t begin = Swap(super->index[index].offset);
-//                         uint32_t end = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
-//                         struct CodeDirectory *directory = reinterpret_cast<struct CodeDirectory *>(blob + begin + sizeof(Blob));
-//                         auto type(directory->hashType);
-//                         _assert(type > 0 && type <= algorithms.size());
-//                         auto &algorithm(*algorithms[type - 1]);
-//                         uint8_t hash[algorithm.size_];
-//                         algorithm(hash, blob + begin, end - begin);
-//                         candidates.insert({type, {directory, end - begin, algorithm, Hex(hash, algorithm.size_), begin}});
-//                     } else if (type == CSSLOT_SIGNATURESLOT) {
-//                         cmsBegin = Swap(super->index[index].offset);
-//                         cmsEnd = index + 1 == Swap(super->count) ? Swap(super->blob.length) : Swap(super->index[index + 1].offset);
-//                     }
-//                 }
-
-//                 _assert(!candidates.empty());
-//                 auto best(candidates.end());
-//                 --best;
-
-//                 const auto directory(best->second.directory_);
-//                 const auto flags(Swap(directory->flags));
-
-//                 printf("Identifier=%s\n", blob + best->second.offset + Swap(directory->identOffset));
-
-//                 std::string names;
-//                 if (flags & kSecCodeSignatureHost)
-//                     names += ",host";
-//                 if (flags & kSecCodeSignatureAdhoc)
-//                     names += ",adhoc";
-//                 if (flags & kSecCodeSignatureForceHard)
-//                     names += ",hard";
-//                 if (flags & kSecCodeSignatureForceKill)
-//                     names += ",kill";
-//                 if (flags & kSecCodeSignatureForceExpiration)
-//                     names += ",expires";
-//                 if (flags & kSecCodeSignatureRestrict)
-//                     names += ",restrict";
-//                 if (flags & kSecCodeSignatureEnforcement)
-//                     names += ",enforcement";
-//                 if (flags & kSecCodeSignatureLibraryValidation)
-//                     names += ",library-validation";
-//                 if (flags & kSecCodeSignatureRuntime)
-//                     names += ",runtime";
-//                 if (flags & kSecCodeSignatureLinkerSigned)
-//                     names += ",linker-signed";
-
-//                 printf("CodeDirectory v=%x size=%zd flags=0x%x(%s) hashes=%d+%d location=embedded\n",
-//                     Swap(directory->version), best->second.size_, flags, names.empty() ? "none" : names.c_str() + 1, Swap(directory->nCodeSlots), Swap(directory->nSpecialSlots));
-//                 printf("Hash type=%s size=%d\n", best->second.algorithm_.name(), directory->hashSize);
-
-//                 std::string choices;
-//                 for (const auto &candidate : candidates) {
-//                     auto choice(candidate.second.algorithm_.name());
-//                     choices += ',';
-//                     choices += choice;
-//                     printf("CandidateCDHash %s=%.40s\n", choice, candidate.second.hash_.c_str());
-//                     printf("CandidateCDHashFull %s=%s\n", choice, candidate.second.hash_.c_str());
-//                 }
-//                 printf("Hash choices=%s\n", choices.c_str() + 1);
-
-//                 printf("CDHash=%.40s\n", best->second.hash_.c_str());
-
-//                 if (cmsBegin != 0 && cmsEnd != 0) {
-//                     // This loads the CMS blob and parses each X509 cert in the blob to extract the
-//                     // common name and print it as "Authority=%s"
-//                     Buffer bio(reinterpret_cast<const char *>(blob) + cmsBegin + sizeof(Blob), cmsEnd - cmsBegin);
-//                     PKCS7 *p7 = NULL;
-//                     if ((p7 = d2i_PKCS7_bio(bio, NULL)) == NULL) {
-//                         // In order to follow codesign, we just ignore errors
-//                         printf("Authority=(unavailable)\n");
-//                     } else {
-//                         STACK_OF(X509) *certs = NULL;
-//                         switch (OBJ_obj2nid(p7->type)) {
-//                             case NID_pkcs7_signed:
-//                                 if (p7->d.sign != NULL)
-//                                     certs = p7->d.sign->cert;
-//                                 break;
-//                             case NID_pkcs7_signedAndEnveloped:
-//                                 if (p7->d.signed_and_enveloped != NULL)
-//                                     certs = p7->d.signed_and_enveloped->cert;
-//                                 break;
-//                             default:
-//                                 break;
-//                         }
-//                         if (certs != NULL) {
-//                             X509 *x;
-//                             for (int i = 0; i < sk_X509_num(certs); i++) {
-//                                 x = sk_X509_value(certs, i);
-//                                 int lastpos = -1;
-//                                 X509_NAME *nm = X509_get_subject_name(x);
-//                                 X509_NAME_ENTRY *e;
-
-//                                 for (;;) {
-//                                     lastpos = X509_NAME_get_index_by_NID(nm, NID_commonName, lastpos);
-//                                     if (lastpos == -1)
-//                                         break;
-//                                     e = X509_NAME_get_entry(nm, lastpos);
-//                                     ASN1_STRING *s = X509_NAME_ENTRY_get_data(e);
-//                                     printf("Authority=%s\n", reinterpret_cast<const char *>(ASN1_STRING_get0_data(s)));
-//                                 }
-//                             }
-//                         } else {
-//                             printf("Authority=(unavailable)\n");
-//                         }
-//                     }
-//                     PKCS7_free(p7);
-//                 }
-
-//                 if (Swap(directory->teamIDOffset) > 0)
-//                     printf("TeamIdentifier=%s\n", blob + best->second.offset + Swap(directory->teamIDOffset));
-//                 else
-//                     printf("TeamIdentifier=not set\n");
-//             }
-//         }
-
-//         ++filei;
-//     } catch (const char *) {
-//         ++filee;
-//         ++filei;
-//     }
-
-// # if OPENSSL_VERSION_MAJOR >= 3
-//     OSSL_PROVIDER_unload(legacy);
-//     OSSL_PROVIDER_unload(deflt);
-// # endif
-
-//     return filee;
-// }
-// #endif // LDID_NOTOOLS
-
-// vim: tabstop=4 softtabstop=4 shiftwidth=4 expandtab

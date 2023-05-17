@@ -86,7 +86,7 @@ jobs:
         if [ "${OS}" = "w64" ]; then
         echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -ffunction-sections -fdata-sections " >> $GITHUB_ENV
         echo "CXXFLAGS=-Os -fPIC -fno-pie -no-pie -ffunction-sections -fdata-sections" >> $GITHUB_ENV
-        echo "LDFLAGS=-Os -fPIC -fno-pie -no-pie -Wl,--gc-sections -Wl,--out-implib,libldid.a -Wl,-strip-all -ffunction-sections -fdata-sections" >> $GITHUB_ENV
+        echo "LDFLAGS=-Os -fPIC -fno-pie -no-pie -Wl,--gc-sections -Wl,--out-implib,libmagicsignature.a -Wl,-strip-all -ffunction-sections -fdata-sections" >> $GITHUB_ENV
         else
         echo "CFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -flto -fdata-sections" >> $GITHUB_ENV
         echo "CXXFLAGS=-Os -fPIC -fno-pie -no-pie -static -ffunction-sections -flto -fdata-sections" >> $GITHUB_ENV
