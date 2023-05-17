@@ -68,14 +68,14 @@ int check_p12_file_isG3CN(const char *fn, const char *password);
 /// @return status ( -1: 无法解析 / 0: not G3 CN Cert / 1: G3 CN Cert)
 int check_p12_bytes_isG3CN(const unsigned char *in_bytes, int len, const char *password);
 
-/// 检查证书状态
-cert_status check_cert_bytes_status(const unsigned char *in_bytes, int len, const char issuer_bytes[]);
+// /// 检查证书状态
+// cert_status check_cert_bytes_status(const unsigned char *in_bytes, int len, const char issuer_bytes[]);
 
-/// 检查证书状态
-cert_status check_p12_file_status(const char *fn, const char *password, const char issuer_bytes[]);
+// /// 检查证书状态
+// cert_status check_p12_file_status(const char *fn, const char *password, const char issuer_bytes[]);
 
-/// 检查证书状态
-cert_status check_p12_bytes_status(const unsigned char *in_bytes, int len, const char *password, const char issuer_bytes[]);
+// /// 检查证书状态
+// cert_status check_p12_bytes_status(const unsigned char *in_bytes, int len, const char *password, const char issuer_bytes[]);
 
 // MARK: - mobild provision handler
 
