@@ -183,46 +183,11 @@ std::string createCert(const char *pkcs12_file, const char *password) {
 int64_t get_file_size(int fd) {
   int64_t nSize = 0;
   struct stat stbuf;
-  if (0 == fstat(fd, &stbuf)) {
-    if (S_ISREG(stbuf.st_mode)) {
-      nSize = stbuf.st_size;
-    }
+  _syscall(fstat(fd, &stbuf));
+  if (S_ISREG(stbuf.st_mode)) {
+    nSize = stbuf.st_size;
   }
   return (nSize < 0 ? 0 : nSize);
-}
-
-/// 撷取指定资料夹下所有档案(资料夹)数量
-/// @param rootpath 指定资料夹
-int get_subpath_count(const char *rootpath) {
-  int total = 0;
-  DIR *dir = opendir(rootpath);
-  if (NULL == dir) {
-    return -1;
-  }
-
-  while (1) {
-    struct dirent *dire = NULL;
-    dire = readdir(dir);
-    if (NULL == dire) {
-      break;
-    }
-    if ((strcmp(dire->d_name, ".") == 0) || (strcmp(dire->d_name, "..") == 0)) {
-      continue;
-    }
-    if (dire->d_type == DT_REG) {
-      ++total;
-      continue;
-    }
-    if (dire->d_type == DT_DIR) {
-      char buf[1024];
-      bzero(buf, sizeof(buf));
-      sprintf(buf, "%s/%s", rootpath, dire->d_name);
-      ++total;
-      total += get_subpath_count(buf);
-    }
-  }
-  closedir(dir);
-  return total;
 }
 
 // MARK: - cert handler
@@ -251,7 +216,8 @@ bool read_x509_name_entry_value(X509_NAME *name, int nid, char **val) {
   return false;
 }
 
-DLL_PUBLIC long parseMobileprovision(const char *provisionFile, char **provContent) {
+DLL_PUBLIC long parseMobileprovision(const char *provisionFile,
+                                     char **provContent) {
   std::string provisionData("");
   provisionData.clear();
   FILE *fp = fopen(provisionFile, "rb");
@@ -283,8 +249,8 @@ DLL_PUBLIC long parseMobileprovision(const char *provisionFile, char **provConte
   return -1;
 }
 
-DLL_PUBLIC bool decodeProvisionFile(const char *provisionFile, char **provContent,
-                         int *len) {
+DLL_PUBLIC bool decodeProvisionFile(const char *provisionFile,
+                                    char **provContent, int *len) {
   std::string provisionData("");
   provisionData.clear();
   FILE *fp = fopen(provisionFile, "rb");
@@ -356,7 +322,7 @@ DLL_PUBLIC bool get_x509_info(X509 *cert, certificate_info *s_cert) {
 }
 
 DLL_PUBLIC bool get_x509_bytes_info(const unsigned char *in_bytes, int len,
-                         certificate_info *s_cert) {
+                                    certificate_info *s_cert) {
   certificate_info x_cert;
   X509 *cert = d2i_X509(NULL, &in_bytes, len);
   if (cert == NULL) {
@@ -366,7 +332,7 @@ DLL_PUBLIC bool get_x509_bytes_info(const unsigned char *in_bytes, int len,
 }
 
 DLL_PUBLIC bool get_pkcs12_file_info(const char *pkcs12, const char *password,
-                          certificate_info *s_cert) {
+                                     certificate_info *s_cert) {
   X509 *cert;
   EVP_PKEY *pkey;
   FILE *fp = fopen(pkcs12, "rb");
@@ -387,7 +353,8 @@ DLL_PUBLIC bool get_pkcs12_file_info(const char *pkcs12, const char *password,
 }
 
 DLL_PUBLIC bool get_pkcs12_info(const unsigned char *in_bytes, int len,
-                     const char *password, certificate_info *s_cert) {
+                                const char *password,
+                                certificate_info *s_cert) {
   X509 *cert;
   EVP_PKEY *pkey;
   PKCS12 *p12 = d2i_PKCS12(NULL, &in_bytes, len);
@@ -407,10 +374,11 @@ DLL_PUBLIC bool get_pkcs12_info(const unsigned char *in_bytes, int len,
 // MARK: - codesign handler
 
 DLL_PUBLIC void ldid_sign_bundle(const char *bundle, const char *pkcs12,
-                      const char *password, const char *entitlements,
-                      void (*codesignProgress)(const void *, const char *,
-                                               double progress),
-                      const void *context) {
+                                 const char *password, const char *entitlements,
+                                 void (*codesignProgress)(const void *,
+                                                          const char *,
+                                                          double progress),
+                                 const void *context) {
   const std::string path(bundle);
   ldid::DiskFolder appBundle(path);
   std::string key = createCert(pkcs12, password);
