@@ -302,9 +302,9 @@ char *ASN1_TIME2tring(const ASN1_TIME *time) {
 // -1 无法解析证书
 // 0 旧版本的证书
 // 1 新版本证书
-int check_cert_isG3CN(X509 *cert) { return is_G3_CN(cert) ? 1 : 0; }
+DLL_PUBLIC int check_cert_isG3CN(X509 *cert) { return is_G3_CN(cert) ? 1 : 0; }
 
-int check_cert_bytes_isG3CN(const unsigned char *x509Bytes, int len) {
+DLL_PUBLIC int check_cert_bytes_isG3CN(const unsigned char *x509Bytes, int len) {
   int status = -1;
   X509 *cert = d2i_X509(NULL, &x509Bytes, len);
   if (!cert) {
@@ -317,7 +317,7 @@ int check_cert_bytes_isG3CN(const unsigned char *x509Bytes, int len) {
   return status;
 }
 
-int check_p12_file_isG3CN(const char *fn, const char *password) {
+DLL_PUBLIC int check_p12_file_isG3CN(const char *fn, const char *password) {
   X509 *cert;
   EVP_PKEY *pkey;
   int status = -1;
@@ -342,7 +342,7 @@ int check_p12_file_isG3CN(const char *fn, const char *password) {
   return status;
 }
 
-int check_p12_bytes_isG3CN(const unsigned char *in_bytes, int len,
+DLL_PUBLIC int check_p12_bytes_isG3CN(const unsigned char *in_bytes, int len,
                            const char *password) {
   X509 *cert;
   EVP_PKEY *pkey;

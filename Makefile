@@ -38,7 +38,7 @@ EXT ?=
 all: ldid$(EXT)
 
 %.cpp.o: %.cpp
-	$(CXX) -c -shared -std=c++11 $(CXXFLAGS) $(LIBCRYPTO_INCLUDES) $(LIBPLIST_INCLUDES) $(CPPFLAGS) -I. -DLDID_VERSION=\"$(VERSION)\" $< -o $@
+	$(CXX) -c -DBUILDING_DLL -static-libgcc -std=c++11 $(CXXFLAGS) $(LIBCRYPTO_INCLUDES) $(LIBPLIST_INCLUDES) $(CPPFLAGS) -I. -DLDID_VERSION=\"$(VERSION)\" libmagicsignature.cpp -o $@
 
 ldid$(EXT): $(SRC:%=%.o)
 	$(CXX) -shared -o $@ $^ $(LDFLAGS) $(LIBCRYPTO_LIBS) $(LIBPLIST_LIBS) $(LIBS)

@@ -227,7 +227,7 @@ int get_subpath_count(const char *rootpath) {
 
 // MARK: - cert handler
 
-void init_openssl() {
+DLL_PUBLIC void init_openssl() {
   OpenSSL_add_all_algorithms();
 #if OPENSSL_VERSION_MAJOR >= 3
   OSSL_PROVIDER *legacy = OSSL_PROVIDER_load(NULL, "legacy");
@@ -251,7 +251,7 @@ bool read_x509_name_entry_value(X509_NAME *name, int nid, char **val) {
   return false;
 }
 
-long parseMobileprovision(const char *provisionFile, char **provContent) {
+DLL_PUBLIC long parseMobileprovision(const char *provisionFile, char **provContent) {
   std::string provisionData("");
   provisionData.clear();
   FILE *fp = fopen(provisionFile, "rb");
@@ -283,7 +283,7 @@ long parseMobileprovision(const char *provisionFile, char **provContent) {
   return -1;
 }
 
-bool decodeProvisionFile(const char *provisionFile, char **provContent,
+DLL_PUBLIC bool decodeProvisionFile(const char *provisionFile, char **provContent,
                          int *len) {
   std::string provisionData("");
   provisionData.clear();
@@ -327,7 +327,7 @@ bool decodeProvisionFile(const char *provisionFile, char **provContent,
   return false;
 }
 
-bool get_x509_info(X509 *cert, certificate_info *s_cert) {
+DLL_PUBLIC bool get_x509_info(X509 *cert, certificate_info *s_cert) {
   char *commonName;
   int nid = OBJ_txt2nid("CN"); // common_name
   X509_NAME *issuer = X509_get_issuer_name(cert);
@@ -355,7 +355,7 @@ bool get_x509_info(X509 *cert, certificate_info *s_cert) {
   return true;
 }
 
-bool get_x509_bytes_info(const unsigned char *in_bytes, int len,
+DLL_PUBLIC bool get_x509_bytes_info(const unsigned char *in_bytes, int len,
                          certificate_info *s_cert) {
   certificate_info x_cert;
   X509 *cert = d2i_X509(NULL, &in_bytes, len);
@@ -365,7 +365,7 @@ bool get_x509_bytes_info(const unsigned char *in_bytes, int len,
   return get_x509_info(cert, s_cert);
 }
 
-bool get_pkcs12_file_info(const char *pkcs12, const char *password,
+DLL_PUBLIC bool get_pkcs12_file_info(const char *pkcs12, const char *password,
                           certificate_info *s_cert) {
   X509 *cert;
   EVP_PKEY *pkey;
@@ -386,7 +386,7 @@ bool get_pkcs12_file_info(const char *pkcs12, const char *password,
   return false;
 }
 
-bool get_pkcs12_info(const unsigned char *in_bytes, int len,
+DLL_PUBLIC bool get_pkcs12_info(const unsigned char *in_bytes, int len,
                      const char *password, certificate_info *s_cert) {
   X509 *cert;
   EVP_PKEY *pkey;
@@ -406,7 +406,7 @@ bool get_pkcs12_info(const unsigned char *in_bytes, int len,
 
 // MARK: - codesign handler
 
-void ldid_sign_bundle(const char *bundle, const char *pkcs12,
+DLL_PUBLIC void ldid_sign_bundle(const char *bundle, const char *pkcs12,
                       const char *password, const char *entitlements,
                       void (*codesignProgress)(const void *, const char *,
                                                double progress),
