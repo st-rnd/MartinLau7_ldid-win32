@@ -215,10 +215,10 @@ cert_status parseResponse(OCSP_RESPONSE *resp) {
 
   return cert_status{status,
                      reason,
-                     revtime ? ASN1_TIME2tring(revtime) : "",
-                     thisupd ? ASN1_TIME2tring(thisupd) : "",
-                     nextupd ? ASN1_TIME2tring(nextupd) : "",
-                     serialNumber ? serialNumberHex : ""};
+                     revtime ? ASN1_TIME2tring(revtime) : NULL,
+                     thisupd ? ASN1_TIME2tring(thisupd) : NULL,
+                     nextupd ? ASN1_TIME2tring(nextupd) : NULL,
+                     serialNumber ? serialNumberHex : NULL};
 }
 
 // MARK: - OCSP
@@ -264,9 +264,12 @@ cert_status doCheckOCSP(X509 *cert, X509 *issuer) {
           if (responder_status == OCSP_RESPONSE_STATUS_SUCCESSFUL) {
             status = parseResponse(resp);
           } else {
-            status = cert_status{
-                V_OCSP_CERTSTATUS_UNKNOWN,
-                V_OCSP_CERTSTATUS_UNKNOWN + responder_status "", "", "", ""};
+            status = cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
+                                 V_OCSP_CERTSTATUS_UNKNOWN + responder_status,
+                                 NULL,
+                                 NULL,
+                                 NULL,
+                                 NULL};
           }
           OCSP_RESPONSE_free(resp);
         }
@@ -366,7 +369,11 @@ cert_status check_cert_bytes_status(const unsigned char *in_bytes, int len,
   X509 *cert = d2i_X509(NULL, &in_bytes, len);
   if (cert == NULL) {
     return cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
-                       V_OCSP_CERTSTATUS_UNKNOWN + 20};
+                       V_OCSP_CERTSTATUS_UNKNOWN + 20,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL};
   }
   cert_status status = doCheckStatusByOCSP(cert, ca_bytes);
   X509_free(cert);
@@ -384,7 +391,11 @@ cert_status check_p12_file_status(const char *fn, const char *password,
   if (!p12) {
     fclose(fp);
     return cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
-                       V_OCSP_CERTSTATUS_UNKNOWN + 20};
+                       V_OCSP_CERTSTATUS_UNKNOWN + 20,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL};
   }
 
   PKCS12_parse(p12, password, &pkey, &cert, NULL);
@@ -392,7 +403,11 @@ cert_status check_p12_file_status(const char *fn, const char *password,
     PKCS12_free(p12);
     fclose(fp);
     return cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
-                       V_OCSP_CERTSTATUS_UNKNOWN + 20};
+                       V_OCSP_CERTSTATUS_UNKNOWN + 20,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL};
   }
 
   // start check from apple ocsp
@@ -407,14 +422,22 @@ cert_status check_p12_bytes_status(const unsigned char *in_bytes, int len,
   PKCS12 *p12 = d2i_PKCS12(NULL, &in_bytes, len);
   if (!p12) {
     return cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
-                       V_OCSP_CERTSTATUS_UNKNOWN + 20};
+                       V_OCSP_CERTSTATUS_UNKNOWN + 20,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL};
   }
 
   PKCS12_parse(p12, password, &pkey, &cert, NULL);
   if (!cert) {
     PKCS12_free(p12);
     return cert_status{V_OCSP_CERTSTATUS_UNKNOWN,
-                       V_OCSP_CERTSTATUS_UNKNOWN + 20};
+                       V_OCSP_CERTSTATUS_UNKNOWN + 20,
+                       NULL,
+                       NULL,
+                       NULL,
+                       NULL};
   }
 
   // start check from apple ocsp
